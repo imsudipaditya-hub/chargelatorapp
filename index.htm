@@ -273,6 +273,7 @@
         <button class="tab-btn" data-tab="local-price" data-i18n="nav_local_price">Calculate Local Price</button>
         <button class="tab-btn" data-tab="special-rates" data-i18n="nav_special_rates">Selling Price (Marriott / EXB / B.com)</button>
         <button class="tab-btn" data-tab="discounts" data-i18n="nav_discounts">Calculate Discounts</button>
+        <button class="tab-btn" data-tab="usage-history" style="border-left: 3px solid var(--accent); font-weight:600;">📊 Usage History</button>
       </nav>
 
       <div class="rate-widget">
@@ -656,6 +657,38 @@
           </div>
         </div>
       </section>
+
+      <section id="usage-history" class="tab-panel">
+        <div class="grid">
+          <div class="card" style="grid-column: span 12;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <h3>Calculation Usage History Log</h3>
+                <p class="desc" style="margin:0;">Audit logs tracking all active operator calculations for the day</p>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="date" id="history_date_filter" class="select-control" style="padding: 8px 12px; height: auto;" onchange="renderHistoryTable()">
+                <button class="btn" style="padding: 8px 14px; background: rgba(226, 24, 54, 0.1); border-color: rgba(226, 24, 54, 0.2); color: #E21836;" onclick="clearUsageHistory()">Wipe Logs</button>
+              </div>
+            </div>
+
+            <div style="overflow-x: auto; max-height: 480px; border: 1px solid var(--border); border-radius: 12px;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <thead>
+                  <tr style="background: rgba(128,128,128,0.05); border-bottom: 1px solid var(--border);">
+                    <th style="padding: 12px 16px; color: var(--accent);">Timestamp</th>
+                    <th style="padding: 12px 16px; color: var(--accent);">Module / Context</th>
+                    <th style="padding: 12px 16px; color: var(--accent);">Operator Inputs</th>
+                    <th style="padding: 12px 16px; color: var(--accent); text-align: right;">Calculated Output</th>
+                  </tr>
+                </thead>
+                <tbody id="history_table_body">
+                  </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -671,6 +704,9 @@
 
     const q = (id) => document.getElementById(id);
     const STORAGE_KEY = "chargesCalcV3State";
+    // NEW UNIQUE GLOBAL CONSTANTS FOR THE AUDIT LOG ENGINE
+    const HISTORY_STORAGE_KEY = "chargesCalcV3History";
+    const MAX_LOGS = 500;
 
     function num(id) {
       const el = q(id);
@@ -702,12 +738,100 @@
       calculatePaxCurrency();
     }
 
+    // Centralized Application Core Logger Function
+    function pushToHistoryLog(moduleName, inputsObject, outputString) {
+      try {
+        let currentLogs = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY)) || [];
+        
+        const timestamp = new Date();
+        const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const formattedDate = timestamp.toISOString().split('T')[0];
+
+        // Format dynamic string values for the inputs column row view
+        let inputLabels = Object.entries(inputsObject)
+          .map(([key, value]) => `${key.replace(/_/g, ' ')}: **${value}**`)
+          .join(" | ");
+
+        const newLogEntry = {
+          date: formattedDate,
+          time: formattedTime,
+          module: moduleName,
+          inputs: inputLabels,
+          output: outputString
+        };
+
+        // Enforce FIFO data trimming parameters to counter memory boundary degradation
+        currentLogs.unshift(newLogEntry);
+        if (currentLogs.length > MAX_LOGS) {
+          currentLogs = currentLogs.slice(0, MAX_LOGS);
+        }
+
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(currentLogs));
+        renderHistoryTable();
+      } catch (e) {
+        console.error("Vulnerability or local space limits prevented system append log:", e);
+      }
+    }
+
+    // Dynamic Database Query Render Engine
+    function renderHistoryTable() {
+      const tbody = q("history_table_body");
+      if (!tbody) return;
+
+      const logs = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY)) || [];
+      const filterDate = q("history_date_filter").value;
+      
+      tbody.innerHTML = "";
+
+      // Perform selective date filtering parameters
+      const filteredLogs = logs.filter(log => !filterDate || log.date === filterDate);
+
+      if (filteredLogs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" style="padding: 32px; text-align: center; color: var(--muted); font-style: italic;">
+              No calculations logged for the selected date criteria.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      // Safe DOM node serialization routine to protect workspace parameters
+      filteredLogs.forEach(log => {
+        const row = document.createElement("tr");
+        row.style.borderBottom = "1px solid var(--border)";
+        row.style.background = "transparent";
+
+        row.innerHTML = `
+          <td style="padding: 12px 16px; white-space: nowrap; color: var(--muted); font-family: monospace;">${log.date} ${log.time}</td>
+          <td style="padding: 12px 16px; font-weight: 600; color: var(--text); text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em;">${log.module}</td>
+          <td style="padding: 12px 16px; color: var(--muted); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.inputs}</td>
+          <td style="padding: 12px 16px; font-weight: 700; text-align: right; color: var(--accent2); font-family: monospace; font-size: 14px;">${log.output}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Dedicated Master Flush Maintenance Operation Tool
+    function clearUsageHistory() {
+      if (confirm("Are you absolute certain you wish to permanently purge your calculation historical log cache for all days? This action cannot be reversed.")) {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+        renderHistoryTable();
+      }
+    }
+    
     function calculateSellingPrice() {
       const localPrice = num("selling_local_price");
       const markup = percent("selling_markup");
       const exchangeRate = num("selling_exchange_rate");
       const result = exchangeRate === 0 ? 0 : (localPrice + (localPrice * markup)) / exchangeRate;
-      q("selling_price_usd_result").textContent = fmt(result);
+      const displayVal = fmt(result);
+      q("selling_price_usd_result").textContent = displayVal;
+      
+      // LOG DATA POINT INTERCEPT LOOP
+      if (localPrice > 0) {
+        pushToHistoryLog("Selling Price USD", { "Local_Price": localPrice, "Markup_%": num("selling_markup"), "Ex_Rate": exchangeRate }, `$${displayVal}`);
+      }
       autoCopySellingPriceToPax();
     }
 
@@ -715,7 +839,13 @@
       const sellingPriceUSD = num("pax_selling_price_usd");
       const exchangeRateFromPaymentsTab = num("pax_exchange_rate");
       const result = sellingPriceUSD * exchangeRateFromPaymentsTab;
-      q("pax_currency_result").textContent = fmt(result);
+      const displayVal = fmt(result);
+      q("pax_currency_result").textContent = displayVal;
+
+      // LOG DATA POINT INTERCEPT LOOP
+      if (sellingPriceUSD > 0 && exchangeRateFromPaymentsTab > 0) {
+        pushToHistoryLog("Pax Currency", { "SP_USD": sellingPriceUSD, "Cust_Ex_Rate": exchangeRateFromPaymentsTab }, displayVal);
+      }
     }
 
     function calculateLocalPrice() {
@@ -723,7 +853,13 @@
       const commission = percent("local_commission");
       const exchangeRate = num("local_exchange_rate");
       const result = (sellingPrice - (sellingPrice * commission)) * exchangeRate;
-      q("local_price_result").textContent = fmt(result);
+      const displayVal = fmt(result);
+      q("local_price_result").textContent = displayVal;
+
+      // LOG DATA POINT INTERCEPT LOOP
+      if (sellingPrice > 0) {
+        pushToHistoryLog("Local Price", { "SP_USD": sellingPrice, "Comm_%": num("local_commission"), "Ex_Rate": exchangeRate }, displayVal);
+      }
     }
 
     function calculateMarriott() {
@@ -731,8 +867,14 @@
       const exchangeRate = num("marriott_exchange_rate");
       const sellingPrice = exchangeRate === 0 ? 0 : priceGivenByHotelInLocalCurrency / exchangeRate;
       const localPrice = exchangeRate === 0 ? 0 : (sellingPrice * 0.845) * exchangeRate;
+      
       q("marriott_selling_price_result").textContent = fmt(sellingPrice);
       q("marriott_local_price_result").textContent = fmt(localPrice);
+
+      // LOG DATA POINT INTERCEPT LOOP
+      if (priceGivenByHotelInLocalCurrency > 0) {
+        pushToHistoryLog("Marriott Merchant", { "Hotel_Local": priceGivenByHotelInLocalCurrency, "Ex_Rate": exchangeRate }, `SP: ${fmt(sellingPrice)} | LP: ${fmt(localPrice)}`);
+      }
     }
 
     function calculateEXB() {
@@ -1272,7 +1414,11 @@
     loadState();
     restoreUIState();
     calculateAll();
-
+    
+    // Set default filter component values and launch your data visual matrix row updates
+    q("history_date_filter").value = new Date().toISOString().split('T')[0];
+    renderHistoryTable();
+    
     document.querySelectorAll("input[type='number']").forEach(input => {
       input.addEventListener("input", autoSaveState);
       input.addEventListener("change", autoSaveState);
