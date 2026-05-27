@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="manifest" href="manifest.json">
   <title>Charges Tab Calculator v3</title>
+  
+  <link rel="manifest" href="manifest.json">
+
   <style>
     /* Revamped Theme: Cyber Navy & Emerald (Dark) / Slate & Teal (Light) */
     :root {
@@ -50,7 +52,7 @@
       color-scheme: light;
     }
 
-    * { box-sizing: border-box; }
+    * { box-box-sizing: border-box; }
 
     html, body {
       margin: 0;
@@ -164,6 +166,7 @@
     }
 
     .credits { margin-top: auto; padding-top: 24px; font-size: 11px; color: var(--muted); opacity: 0.6; text-align: left; font-weight: 500; }
+    .content { padding: 28px; position: relative; min-width: 0; }
     .content { padding: 28px; position: relative; min-width: 0; }
     .topbar { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
     .topbar h2 { margin: 0; font-size: 28px; }
@@ -657,14 +660,15 @@
   </div>
 
   <script>
-    // Register PWA Service Worker gracefully on window launch
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js")
-      .then((reg) => console.log("Service Worker successfully configured:", reg.scope))
-      .catch((err) => console.warn("Service worker registration dropped:", err));
-  });
-}
+    // --- PWA SERVICE WORKER REGISTRATION SCRIPT ---
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+          .then((reg) => console.log("Service Worker successfully configured:", reg.scope))
+          .catch((err) => console.warn("Service worker registration dropped:", err));
+      });
+    }
+
     const q = (id) => document.getElementById(id);
     const STORAGE_KEY = "chargesCalcV3State";
 
@@ -853,7 +857,6 @@ if ("serviceWorker" in navigator) {
       let date = q("widget_date").value;
       const today = new Date().toISOString().split('T')[0];
       
-      // If the user selects today's date or a future date, fall back to "latest" to avoid 404s
       if (!date || date >= today) {
          date = "latest";
       }
@@ -867,7 +870,7 @@ if ("serviceWorker" in navigator) {
         return;
       }
 
-      resEl.innerHTML = '<span style="font-size:12px; color:var(--muted)">Fetching...</span>';
+      resEl.innerHTML = 'Fetching...';
       
       try {
         const url = `https://api.frankfurter.dev/v1/${date}?base=${from}&symbols=${to}`;
@@ -886,13 +889,11 @@ if ("serviceWorker" in navigator) {
         }
       } catch (err) {
         console.error("Exchange Rate Error:", err);
-        resEl.innerHTML = '<span style="font-size:12px; color:#E21836">Unavailable</span>';
+        resEl.innerHTML = 'Unavailable';
       }
     }
 
-    // Attach Event Listener for the widget
     q("widget_btn")?.addEventListener("click", fetchWidgetRate);
-
 
     const translations = {
       en: {
@@ -940,8 +941,7 @@ if ("serviceWorker" in navigator) {
         disc_existing_result_label: "<b>Total Discount % used</b>", disc_existing_formula: "Formula: Discount amount ÷ Total Selling Price w/o Tax",
         disc_from_sp_title: "Calculating Discount Amount from Selling Price", disc_from_sp_instruction: "Insert the data in the blue highlighted input fields. After info is inserted, the total New Discount Price will be calculated below.",
         disc_from_sp_old_total_label: "<b>Old Total Selling Price</b>", disc_from_sp_old_total_help: "Input Total Selling Price amount (Selling Price with Tax - Discount amount) from Supplier Charges section",
-        disc_from_sp_new_total_label: "<b>New Total Selling Price</b>", disc_from_sp_new_total_help: "Input New Total Selling Price",
-        disc_from_sp_old_discount_label: "<b>Old Discount amount</b>", disc_from_sp_old_discount_help: "Input old discount amount from Supplier Charges section",
+        disc_from_sp_new_total_label: "<b>New Total Selling Price</b>", disc_from_sp_new_total_help: "Input New Total Selling Price", disc_from_sp_old_discount_label: "<b>Old Discount amount</b>", disc_from_sp_old_discount_help: "Input old discount amount from Supplier Charges section",
         disc_from_sp_result_label: "<b>New Total Discount Price</b>", disc_from_sp_formula: "Formula: Old Discount amount × New Total Selling Price ÷ Old Total Selling Price",
         disc_amount_title: "Calculating Discount Amount", disc_amount_instruction: "Insert the data in the blue highlighted input fields. After info is inserted, the total Discount Amount will be calculated below.",
         disc_amount_total_label: "<b>Total Selling Price w/o Tax</b>", disc_amount_total_help: "Input Selling Price without Tax in USD from Supplier Charges section",
@@ -970,10 +970,10 @@ if ("serviceWorker" in navigator) {
         marriott_price_label: "<b>酒店提供的当地货币价格</b>", marriott_price_help: "输入酒店提供的当地货币价格", marriott_exchange_label: "<b>汇率</b>", marriott_exchange_help: "输入供应商费用部分的汇率",
         marriott_sp_label: "<b>销售价</b>", marriott_lp_label: "<b>本地价格</b>", marriott_formula: "公式：销售价 = 酒店价格 ÷ 汇率，本地价格 = (销售价 × 0.845) × 汇率",
         exb_section: "EXB - 加床", exb_title: "加床销售价", exb_desc: "客户支付给 Agoda", exb_instruction: "智能搜索中无数据，酒店有空房。<br>在蓝色高亮的输入框中填入数据。填入后，加床销售价将在下方计算出。",
-        exb_local_label: "<b>酒店提供的加床本地价格</b>", exb_local_help: "输入酒店提供的加床本地价格", exb_markup_label: "<b>加价 %</b>", exb_markup_help: "输入加价，始终为 5%。",
+        exb_local_label: "<b>酒店提供的加床本地价格</b>", exb_local_help: "输入酒店提供的加床本地价格",  exb_markup_label: "<b>加价 %</b>", exb_markup_help: "输入加价，始终为 5%。",
         exb_exchange_label: "<b>汇率</b>", exb_exchange_help: "输入供应商费用部分的汇率", exb_result_label: "<b>加床销售价</b>", exb_formula: "公式：加床本地价格 × (1 + 加价 %) ÷ 汇率",
         bcom_section: "BOOKING.COM", bcom_title: "BOOKING.COM 价格计算", bcom_desc: "由于销售价等于本地价格，因此 B.com 预订无需计算销售价/本地价格", bcom_instruction: "输入一个值，其中销售价等于本地价格。",
-        bcom_label: "销售价=本地价格", bcom_help: "销售价和本地价格使用相同的值。", bcom_result_label: "销售价=本地价格",
+        bcom_label: "销售价=本地价格", bcom_help: "销售价 and 本地价格使用相同的值。", bcom_result_label: "销售价=本地价格",
         disc_existing_title: "计算现有折扣 %", disc_existing_instruction: "在蓝色高亮的输入框中填入数据。填入后，总折扣百分比将在下方计算出。",
         disc_existing_total_label: "<b>除税后的总销售价</b>", disc_existing_total_help: "输入供应商费用部分的总销售金额（除税后的销售价 + 折扣金额）",
         disc_existing_amount_label: "<b>折扣金额</b>", disc_existing_amount_help: "输入供应商费用部分的折扣金额", disc_existing_result_label: "<b>使用的总折扣 %</b>", disc_existing_formula: "公式：折扣金额 ÷ 除税后的总销售价",
@@ -1008,7 +1008,7 @@ if ("serviceWorker" in navigator) {
         marriott_sp_label: "<b>販売価格</b>", marriott_lp_label: "<b>現地価格</b>", marriott_formula: "計算式: 販売価格 = ホテル価格 ÷ 為替レート, 現地価格 = (販売価格 × 0.845) × 為替レート",
         exb_section: "EXB - エキストラベッド", exb_title: "エキストラベッドの販売価格", exb_desc: "顧客がAgodaに支払う", exb_instruction: "スマートサーチにデータがなく、ホテルに空室がある場合。<br>青くハイライトされた入力フィールドにデータを入力します。入力後、エキストラベッドの合計販売価格が下に計算されます。",
         exb_local_label: "<b>ホテル提供のエキストラベッド現地価格</b>", exb_local_help: "ホテルから提供されたエキストラベッドの現地価格を入力します", exb_markup_label: "<b>マークアップ %</b>", exb_markup_help: "マークアップを入力します。常に5%です。",
-        exb_exchange_label: "<b>為替レート</b>", exb_exchange_help: "サプライヤー料金セクションの為替レートを入力します", exb_result_label: "<b>エキストラベッドの販売価格</b>", exb_formula: "計算式: EXBの現地価格 × (1 + マークアップ %) ÷ 為替レート",
+        exb_exchange_label: "<b>為替レート</b>", exb_exchange_help: "サプライヤー料金セクションの為替レートを入力します", exb_result_label: "<b>エキストラベッド of 販売価格</b>", exb_formula: "計算式: EXBの現地価格 × (1 + マークアップ %) ÷ 為替レート",
         bcom_section: "BOOKING.COM", bcom_title: "BOOKING.COMの価格計算", bcom_desc: "販売価格が現地価格と等しいため、B.com予約のSP/LP計算は不要です", bcom_instruction: "販売価格が現地価格と等しい値を入力してください。",
         bcom_label: "販売価格=現地価格", bcom_help: "SPとLPの両方に同じ値が使用されます。", bcom_result_label: "販売価格=現地価格",
         disc_existing_title: "既存の割引 % の計算", disc_existing_instruction: "青くハイライトされた入力フィールドにデータを入力します。入力後、使用された合計割引率が下に計算されます。",
@@ -1016,7 +1016,7 @@ if ("serviceWorker" in navigator) {
         disc_existing_amount_label: "<b>割引額</b>", disc_existing_amount_help: "サプライヤー料金セクションから取得した割引額を入力します", disc_existing_result_label: "<b>使用された合計割引 %</b>", disc_existing_formula: "計算式: 割引額 ÷ 税抜きの合計販売価格",
         disc_from_sp_title: "販売価格からの割引額の計算", disc_from_sp_instruction: "青くハイライトされた入力フィールドにデータを入力します。入力後、新しい割引価格が下に計算されます。",
         disc_from_sp_old_total_label: "<b>以前の合計販売価格</b>", disc_from_sp_old_total_help: "サプライヤー料金セクションから合計販売金額（税込み販売価格 - 割引額）を入力します",
-        disc_from_sp_new_total_label: "<b>新しい合計販売価格</b>", disc_from_sp_new_total_help: "新しい合計販売価格を入力します", disc_from_sp_old_discount_label: "<b>以前の割引額</b>", disc_from_sp_old_discount_help: "サプライヤー料金セクションからの以前の割引額を入力します",
+        disc_from_sp_new_total_label: "<b>新しい合計販売価格</b>", disc_from_sp_new_total_help: "新しい合計販売価格を入力します", disc_from_sp_old_discount_label: "<b>以前の割引額</b>", disc_from_sp_old_discount_help: "サプライヤー料金セクションからの以前의 割引額を入力します",
         disc_from_sp_result_label: "<b>新しい合計割引価格</b>", disc_from_sp_formula: "計算式: 以前の割引額 × 新しい合計販売価格 ÷ 以前の合計販売価格",
         disc_amount_title: "割引額の計算", disc_amount_instruction: "青くハイライトされた入力フィールドにデータを入力します。入力後、割引額が下に計算されます。",
         disc_amount_total_label: "<b>税抜きの合計販売価格</b>", disc_amount_total_help: "サプライヤー料金セクションから税抜きのUSD販売価格を入力します", disc_amount_pct_label: "<b>割引 %</b>", disc_amount_pct_help: "割引 % を入力します",
