@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.json">
+  <title>Charges Tab Calculator v3</title>
+  <style>
+    /* Revamped Theme: Cyber Navy & Emerald (Dark) / Slate & Teal (Light) */
+    :root {
+      --bg: #0B1120;
+      --panel: #111827;
+      --card: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #3b82f6;   /* Blue */
+      --accent2: #10b981;  /* Emerald */
+      --input: #111827;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 10px 30px rgba(0,0,0,.3);
+      --radius: 16px;
+      --instructionBg: rgba(59, 130, 246, 0.1);
+      --instructionBorder: rgba(59, 130, 246, 0.2);
+      --instructionText: #dbeafe;
+      --overlay: rgba(11, 17, 32, 0.7);
+    }
+
+    html[data-theme="light"] {
+      --bg: #f3f4f6;
+      --panel: #ffffff;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent2: #059669;
+      --input: #f9fafb;
+      --border: rgba(31, 41, 55, 0.1);
+      --shadow: 0 10px 30px rgba(0,0,0,.05);
+      --instructionBg: rgba(37, 99, 235, 0.05);
+      --instructionBorder: rgba(37, 99, 235, 0.15);
+      --instructionText: #1e3a8a;
+      --overlay: rgba(31, 41, 55, 0.4);
+    }
+
+    /* Date picker color scheme fix for dark mode */
+    input[type="date"] {
+      color-scheme: dark;
+    }
+    html[data-theme="light"] input[type="date"] {
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      min-height: 100%;
+    }
+
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30%),
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.05), transparent 30%);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background .3s ease, color .3s ease;
+      overflow-x: hidden;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 24px 18px;
+      z-index: 30;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      transition: transform .3s ease, background .3s ease, box-shadow .3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Webkit Scrollbar styling for sidebar */
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+
+    .logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .logo svg { width: 22px; height: 22px; animation: calcPulse 2.5s infinite ease-in-out; }
+
+    @keyframes calcPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .agoda-mini { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+    .agoda-dots { display: inline-flex; gap: 4px; align-items: center; }
+    .agoda-dots span { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+    .agoda-dots span:nth-child(1) { background: #E21836; }
+    .agoda-dots span:nth-child(2) { background: #FFB300; }
+    .agoda-dots span:nth-child(3) { background: #00A15C; }
+    .agoda-dots span:nth-child(4) { background: #8C409E; }
+    .agoda-dots span:nth-child(5) { background: #0071C2; }
+
+    .agoda-word { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--muted); text-transform: lowercase; }
+    .brand h1 { margin: 0; font-size: 18px; }
+    .brand small { color: var(--muted); }
+
+    .nav { display: flex; flex-direction: column; gap: 8px; }
+
+    .nav button {
+      width: 100%; text-align: left; padding: 14px; border-radius: 14px;
+      background: transparent; border: 1px solid transparent; color: var(--text);
+      cursor: pointer; transition: .2s ease;
+    }
+
+    .nav button:hover, .nav button.active { background: rgba(128,128,128,.08); border-color: var(--border); }
+    
+    /* --- RATE WIDGET CSS --- */
+    .rate-widget {
+      margin-top: 24px; padding: 16px; border-radius: 14px;
+      background: linear-gradient(145deg, rgba(31, 41, 55, 0.4), rgba(17, 24, 39, 0.2));
+      border: 1px solid var(--border); position: relative; overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .rate-widget::before {
+      content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .widget-title {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .widget-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .widget-input {
+      width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--input); color: var(--text); font-size: 13px; outline: none; cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+    .widget-input:focus { border-color: var(--accent); }
+    .widget-arrow { color: var(--muted); font-size: 12px; }
+    .widget-result {
+      margin-top: 12px; padding: 10px; border-radius: 8px;
+      background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);
+      text-align: center; font-size: 18px; font-weight: 700; color: var(--accent2);
+      min-height: 44px; display: flex; align-items: center; justify-content: center;
+    }
+
+    .credits { margin-top: auto; padding-top: 24px; font-size: 11px; color: var(--muted); opacity: 0.6; text-align: left; font-weight: 500; }
+    .content { padding: 28px; position: relative; min-width: 0; }
+    .topbar { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+    .topbar h2 { margin: 0; font-size: 28px; }
+    .topbar p { margin: 6px 0 0; color: var(--muted); }
+    .topbar-right { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn, .select-control {
+      padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); cursor: pointer; font: inherit; transition: .2s ease;
+    }
+    .btn:hover, .select-control:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn.primary { border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #ffffff !important; font-weight: 600; }
+    .btn.widget-btn { width: 100%; padding: 8px; font-size: 13px; border-radius: 8px; }
+
+    .toolbar-chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+    .toggle-switch { position: relative; width: 56px; height: 30px; display: inline-block; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #374151; border-radius: 999px; transition: .3s ease; border: 1px solid var(--border); }
+    .toggle-slider:before { content: ""; position: absolute; height: 22px; width: 22px; left: 4px; top: 3px; border-radius: 50%; background: white; transition: .3s ease; box-shadow: 0 4px 10px rgba(0,0,0,.2); }
+    .toggle-switch input:checked + .toggle-slider { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(26px); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+    .card { grid-column: span 12; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); transition: background .3s ease, border-color .3s ease; }
+    .half { grid-column: span 6; }
+    .third { grid-column: span 4; }
+    .card h3 { margin: 0 0 8px; }
+    .desc { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+
+    .instruction { margin: 0 0 20px; padding: 14px; border-radius: 12px; background: var(--instructionBg); border: 1px solid var(--instructionBorder); color: var(--instructionText); font-size: 13px; line-height: 1.6; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 13px; color: var(--muted); }
+    .field input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--input); color: var(--text); font-size: 15px; outline: none; transition: box-shadow .2s ease, border-color .2s ease; }
+    .field input:focus { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); border-color: var(--accent); }
+    .field small { color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .result { margin-top: 20px; padding: 20px; border-radius: 16px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1)); border: 1px solid var(--border); }
+    .result .label { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .result .value { font-size: 28px; font-weight: 700; word-break: break-word; color: var(--accent2); }
+    .inline-note { margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 12px; font-weight: 600; }
+    .mini-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    .topbar-agoda { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); }
+    .mobile-menu-btn { display: none; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-size: 20px; }
+    .sidebar-overlay { position: fixed; inset: 0; background: var(--overlay); opacity: 0; pointer-events: none; transition: opacity .3s ease; z-index: 25; backdrop-filter: blur(4px); }
+    .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .half, .third { grid-column: span 12; }
+      .mobile-menu-btn { display: inline-flex; }
+      .sidebar { position: fixed !important; left: 0; top: 0; height: 100vh; width: min(84vw, 320px); transform: translateX(-110%); box-shadow: var(--shadow); }
+      .sidebar.mobile-open { transform: translateX(0); }
+    }
+    @media (max-width: 700px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .content { padding: 18px; }
+      .topbar-right { width: 100%; justify-content: flex-start; }
+      .toolbar-chip, .actions { width: 100%; justify-content: space-between; }
+      .select-control, .btn { width: auto; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="3"></rect>
+            <rect x="8" y="6" width="8" height="4" rx="1"></rect>
+            <line x1="8" y1="14" x2="8" y2="14.01"></line>
+            <line x1="12" y1="14" x2="12" y2="14.01"></line>
+            <line x1="16" y1="14" x2="16" y2="14.01"></line>
+            <line x1="8" y1="18" x2="8" y2="18.01"></line>
+            <line x1="12" y1="18" x2="12" y2="18.01"></line>
+            <line x1="16" y1="18" x2="16" y2="18.01"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 data-i18n="brand_title">Chargelator v3</h1>
+          <small data-i18n="brand_subtitle">Web version</small>
+          <div class="agoda-mini">
+            <div class="agoda-dots" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="agoda-word">agoda</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="tab-btn active" data-tab="selling-price" data-i18n="nav_selling_usd">Selling Price (USD)</button>
+        <button class="tab-btn" data-tab="pax-currency" data-i18n="nav_pax_currency">Selling Price (Pax Currency)</button>
+        <button class="tab-btn" data-tab="local-price" data-i18n="nav_local_price">Calculate Local Price</button>
+        <button class="tab-btn" data-tab="special-rates" data-i18n="nav_special_rates">Selling Price (Marriott / EXB / B.com)</button>
+        <button class="tab-btn" data-tab="discounts" data-i18n="nav_discounts">Calculate Discounts</button>
+      </nav>
+
+      <div class="rate-widget">
+        <div class="widget-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <span data-i18n="widget_title">Live Rates</span>
+        </div>
+        <div class="widget-row">
+          <input type="date" id="widget_date" class="widget-input" onclick="this.showPicker()">
+        </div>
+        <div class="widget-row">
+          <select id="widget_from" class="widget-input">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="JPY">JPY</option>
+            <option value="AUD">AUD</option>
+            <option value="CAD">CAD</option>
+            <option value="CHF">CHF</option>
+            <option value="CNY">CNY</option>
+            <option value="HKD">HKD</option>
+            <option value="NZD">NZD</option>
+            <option value="SGD">SGD</option>
+            <option value="THB">THB</option>
+            <option value="INR">INR</option>
+            <option value="MYR">MYR</option>
+            <option value="KRW">KRW</option>
+            <option value="IDR">IDR</option>
+            <option value="PHP">PHP</option>
+          </select>
+          <span class="widget-arrow">➔</span>
+          <select id="widget_to" class="widget-input">
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+            <option value="GBP">GBP</option>
+            <option value="JPY">JPY</option>
+            <option value="AUD">AUD</option>
+            <option value="CAD">CAD</option>
+            <option value="CHF">CHF</option>
+            <option value="CNY">CNY</option>
+            <option value="HKD">HKD</option>
+            <option value="NZD">NZD</option>
+            <option value="SGD">SGD</option>
+            <option value="THB">THB</option>
+            <option value="INR">INR</option>
+            <option value="MYR">MYR</option>
+            <option value="KRW">KRW</option>
+            <option value="IDR">IDR</option>
+            <option value="PHP">PHP</option>
+          </select>
+        </div>
+        <button class="btn primary widget-btn" id="widget_btn" data-i18n="widget_fetch">Fetch Rate</button>
+        <div class="widget-result" id="widget_result">--</div>
+      </div>
+      
+      <div class="credits">Created By- Sudip Aditya, CEG, PNQ</div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div style="display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open Menu">☰</button>
+          <div>
+            <h2 data-i18n="page_title">Charges Tab Calculator v3</h2>
+            <p data-i18n="page_subtitle">as per the original v2 Excel-file</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="toolbar-chip">
+            <span class="mini-label" data-i18n="language">Language</span>
+            <select class="select-control" id="languageSelect" aria-label="Language">
+              <option value="en">EN</option>
+              <option value="zh">CN</option>
+              <option value="ja">JP</option>
+              <option value="id">Indonesian</option>
+              <option value="ko">KOR</option>
+              <option value="fil">Filipino</option>
+              <option value="th">TH</option>
+              <option value="vi">VN</option>
+            </select>
+          </div>
+
+          <div class="toolbar-chip">
+            <span class="mini-label" data-i18n="dark_mode">Dark Mode</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="themeToggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" onclick="clearAll()" data-i18n="clear_all">Clear All</button>
+          </div>
+        </div>
+      </div>
+
+      <section id="selling-price" class="tab-panel active">
+        <div class="grid">
+          <div class="card half">
+            <h3 data-i18n="sp_title">Calculating Selling Price in USD</h3>
+            <p class="desc" data-i18n="sp_desc">Calculating Selling Price (when we know Local Price)</p>
+            <div class="instruction" data-i18n="sp_instruction">
+              There is no data in smart search, hotel has availability.<br>
+              Step 1: Insert the data in the blue highlighted input fields. After info is inserted, the total Selling Price will be calculated in the result field below.<br>
+              Step 2: Selling Price auto-copied to Charges Tab.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="sp_local_price_label"><b>Local Price</b></label>
+                <input id="selling_local_price" type="number" step="any" placeholder="e.g. 37.62" data-i18n-placeholder="sp_local_price_ph">
+                <small data-i18n="sp_local_price_help">Input Local Price given by the hotel in local currency</small>
+              </div>
+              <div class="field">
+                <label data-i18n="sp_markup_label"><b>Markup %</b></label>
+                <input id="selling_markup" type="number" step="any" placeholder="e.g. 3.8" data-i18n-placeholder="sp_markup_ph">
+                <small data-i18n="sp_markup_help">Input the Markup from the Supplier Charges section</small>
+              </div>
+              <div class="field">
+                <label data-i18n="sp_exchange_label"><b>Exchange rate</b></label>
+                <input id="selling_exchange_rate" type="number" step="any" placeholder="e.g. 1" data-i18n-placeholder="sp_exchange_ph">
+                <small data-i18n="sp_exchange_help">Input the Exchange Rate from the Supplier Charges section</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="sp_result_label"><b>Selling price in USD</b></div>
+              <div class="value" id="selling_price_usd_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="sp_formula">
+              Formula: (Local Price + (Local Price × Markup %)) ÷ Exchange rate
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pax-currency" class="tab-panel">
+        <div class="grid">
+          <div class="card half">
+            <h3 data-i18n="pax_title">Calculating Selling Price in Customers Currency</h3>
+            <p class="desc" data-i18n="pax_desc">When we calculated SP in USD</p>
+            <div class="instruction" data-i18n="pax_instruction">
+              Insert the data in the blue highlighted input fields. After info is inserted, the total Selling Price in Pax Currency will be calculated below.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="pax_usd_label"><b>Selling Price in USD</b></label>
+                <input id="pax_selling_price_usd" type="number" step="any" placeholder="e.g. 39.049560" data-i18n-placeholder="pax_usd_ph">
+                <small data-i18n="pax_usd_help">Input Selling Prices in USD from the Supplier Charges section</small>
+              </div>
+              <div class="field">
+                <label data-i18n="pax_exchange_label"><b>Exchange Rate from Customer Payments</b></label>
+                <input id="pax_exchange_rate" type="number" step="any" placeholder="e.g. 6.8128" data-i18n-placeholder="pax_exchange_ph">
+                <small data-i18n="pax_exchange_help">Input the exchange rate from the Customer Payments section</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="pax_result_label"><b>Selling Price in pax currency</b></div>
+              <div class="value" id="pax_currency_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="pax_formula">
+              Formula: Selling Price in USD × Exchange Rate from Customer Payments
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="local-price" class="tab-panel">
+        <div class="grid">
+          <div class="card half">
+            <h3 data-i18n="lp_title">Calculating Local Price</h3>
+            <p class="desc" data-i18n="lp_desc">Calculating Local Price (when we know selling price)</p>
+            <div class="instruction" data-i18n="lp_instruction">
+              No data in Smart Search, hotel has availability.<br>
+              Step 1: Insert the data in the blue highlighted input fields. After info is inserted, the total Local Price will be calculated below.<br>
+              Step 2: Copy Local Price to Charges Tab.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="lp_selling_label"><b>Selling price</b></label>
+                <input id="local_selling_price" type="number" step="any" placeholder="e.g. 15.64" data-i18n-placeholder="lp_selling_ph">
+                <small data-i18n="lp_selling_help">Input Selling Price in USD from Supplier Charges section</small>
+              </div>
+              <div class="field">
+                <label data-i18n="lp_commission_label"><b>Commission %</b></label>
+                <input id="local_commission" type="number" step="any" placeholder="e.g. 1.1" data-i18n-placeholder="lp_commission_ph">
+                <small data-i18n="lp_commission_help">Input Commission from Supplier Charges section</small>
+              </div>
+              <div class="field">
+                <label data-i18n="lp_exchange_label"><b>Exchange rate</b></label>
+                <input id="local_exchange_rate" type="number" step="any" placeholder="e.g. 3.9746" data-i18n-placeholder="lp_exchange_ph">
+                <small data-i18n="lp_exchange_help">Input Exchange Rate from Supplier Charges section</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="lp_result_label"><b>Local Price</b></div>
+              <div class="value" id="local_price_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="lp_formula">
+              Formula: (Selling price - (Selling price × Commission %)) × Exchange rate
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="special-rates" class="tab-panel">
+        <div class="grid">
+          <div class="card half">
+            <div class="section-title" data-i18n="marriott_section">MARRIOTT</div>
+            <h3 data-i18n="marriott_title">Price calculation for MARRIOTT merchant commission</h3>
+            <div class="instruction" data-i18n="marriott_instruction">
+              No data in Smart Search, hotel has availability.<br>
+              Insert the data in the blue highlighted input fields. After info is inserted, SP and LP will be calculated below.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="marriott_price_label"><b>Price given by hotel in local currency</b></label>
+                <input id="marriott_price_given_hotel_local" type="number" step="any" placeholder="Enter amount" data-i18n-placeholder="marriott_price_ph">
+                <small data-i18n="marriott_price_help">Input Local Price given by the hotel in local currency</small>
+              </div>
+              <div class="field">
+                <label data-i18n="marriott_exchange_label"><b>Exchange rate</b></label>
+                <input id="marriott_exchange_rate" type="number" step="any" placeholder="Enter rate" data-i18n-placeholder="marriott_exchange_ph">
+                <small data-i18n="marriott_exchange_help">Input Exchange Rate from Supplier Charges section</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="marriott_sp_label"><b>Selling price</b></div>
+              <div class="value" id="marriott_selling_price_result">0.00</div>
+            </div>
+            <div class="result" style="margin-top:12px;">
+              <div class="label" data-i18n="marriott_lp_label"><b>Local price</b></div>
+              <div class="value" id="marriott_local_price_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="marriott_formula">
+              Formula: Selling price = Hotel Price ÷ Exchange rate, Local price = (Selling price × 0.845) × Exchange rate
+            </div>
+          </div>
+
+          <div class="card half">
+            <div class="section-title" data-i18n="exb_section">EXB- Extra Bed</div>
+            <h3 data-i18n="exb_title">Selling Price for Extra Bed</h3>
+            <p class="desc" data-i18n="exb_desc">Pax pays to Agoda</p>
+            <div class="instruction" data-i18n="exb_instruction">
+              No data in Smart Search, hotel has availability.<br>
+              Insert the data in the blue highlighted input fields. After info is inserted, the total SP for Extra Bed will be calculated below.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="exb_local_label"><b>Local Price for EXB given by hotel</b></label>
+                <input id="exb_local_price" type="number" step="any" placeholder="e.g. 300" data-i18n-placeholder="exb_local_ph">
+                <small data-i18n="exb_local_help">Input Local Price for Extra Bed given by hotel</small>
+              </div>
+              <div class="field">
+                <label data-i18n="exb_markup_label"><b>Markup %</b></label>
+                <input id="exb_markup" type="number" step="any" placeholder="e.g. 5" data-i18n-placeholder="exb_markup_ph">
+                <small data-i18n="exb_markup_help">Input the Markup, Always 5%.</small>
+              </div>
+              <div class="field">
+                <label data-i18n="exb_exchange_label"><b>Exchange rate</b></label>
+                <input id="exb_exchange_rate" type="number" step="any" placeholder="e.g. 30.3748" data-i18n-placeholder="exb_exchange_ph">
+                <small data-i18n="exb_exchange_help">Input Exchange Rate from Supplier Charges section</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="exb_result_label"><b>Selling price for Extra Bed</b></div>
+              <div class="value" id="exb_selling_price_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="exb_formula">
+              Formula: Local Price for EXB × (1 + Markup %) ÷ Exchange rate
+            </div>
+          </div>
+
+          <div class="card half">
+            <div class="section-title" data-i18n="bcom_section">BOOKING.COM</div>
+            <h3 data-i18n="bcom_title">Price calculation for BOOKING.COM</h3>
+            <p class="desc" data-i18n="bcom_desc">There is no need for SP/LP calculation for B.com bookings since Selling Price equals Local Price</p>
+            <div class="instruction" data-i18n="bcom_instruction">
+              Enter a value where Selling Price equals Local Price.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="bcom_label">SP=LP</label>
+                <input id="bcom_sp_lp" type="number" step="any" placeholder="Enter amount" data-i18n-placeholder="bcom_ph">
+                <small data-i18n="bcom_help">Same value will be used for both SP and LP.</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="bcom_result_label">SP=LP</div>
+              <div class="value" id="bcom_result">0.00</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="discounts" class="tab-panel">
+        <div class="grid">
+          <div class="card third">
+            <h3 data-i18n="disc_existing_title">Calculating Existing Discount %</h3>
+            <div class="instruction" data-i18n="disc_existing_instruction">
+              Insert the data in the blue highlighted input fields. After info is inserted, the total Discount Percentage Used will be calculated below.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="disc_existing_total_label"><b>Total Selling Price w/o Tax</b></label>
+                <input id="existing_discount_total_sp_wo_tax" type="number" step="any" placeholder="e.g. 214.79" data-i18n-placeholder="disc_existing_total_ph">
+                <small data-i18n="disc_existing_total_help">Input Total Selling Price amount (Selling Price w/o Tax + Discount amount) from Supplier Charges section</small>
+              </div>
+              <div class="field">
+                <label data-i18n="disc_existing_amount_label"><b>Discount amount</b></label>
+                <input id="existing_discount_amount" type="number" step="any" placeholder="e.g. 15.04" data-i18n-placeholder="disc_existing_amount_ph">
+                <small data-i18n="disc_existing_amount_help">Input Discount amount taken from Supplier Charges section</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="disc_existing_result_label"><b>Total Discount % used</b></div>
+              <div class="value" id="existing_discount_pct_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="disc_existing_formula">
+              Formula: Discount amount ÷ Total Selling Price w/o Tax
+            </div>
+          </div>
+
+          <div class="card third">
+            <h3 data-i18n="disc_from_sp_title">Calculating Discount Amount from Selling Price</h3>
+            <div class="instruction" data-i18n="disc_from_sp_instruction">
+              Insert the data in the blue highlighted input fields. After info is inserted, the total New Discount Price will be calculated below.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="disc_from_sp_old_total_label"><b>Old Total Selling Price</b></label>
+                <input id="discount_from_sp_old_total_sp" type="number" step="any" placeholder="e.g. 1939.83" data-i18n-placeholder="disc_from_sp_old_total_ph">
+                <small data-i18n="disc_from_sp_old_total_help">Input Total Selling Price amount (Selling Price with Tax - Discount amount) from Supplier Charges section</small>
+              </div>
+              <div class="field">
+                <label data-i18n="disc_from_sp_new_total_label"><b>New Total Selling Price</b></label>
+                <input id="discount_from_sp_new_total_sp" type="number" step="any" placeholder="e.g. 1920.07" data-i18n-placeholder="disc_from_sp_new_total_ph">
+                <small data-i18n="disc_from_sp_new_total_help">Input New Total Selling Price</small>
+              </div>
+              <div class="field">
+                <label data-i18n="disc_from_sp_old_discount_label"><b>Old Discount amount</b></label>
+                <input id="discount_from_sp_old_discount_amount" type="number" step="any" placeholder="e.g. 120" data-i18n-placeholder="disc_from_sp_old_discount_ph">
+                <small data-i18n="disc_from_sp_old_discount_help">Input old discount amount from Supplier Charges section</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="disc_from_sp_result_label"><b>New Total Discount Price</b></div>
+              <div class="value" id="discount_from_sp_new_discount_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="disc_from_sp_formula">
+              Formula: Old Discount amount × New Total Selling Price ÷ Old Total Selling Price
+            </div>
+          </div>
+
+          <div class="card third">
+            <h3 data-i18n="disc_amount_title">Calculating Discount Amount</h3>
+            <div class="instruction" data-i18n="disc_amount_instruction">
+              Insert the data in the blue highlighted input fields. After info is inserted, the total Discount Amount will be calculated below.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label data-i18n="disc_amount_total_label"><b>Total Selling Price w/o Tax</b></label>
+                <input id="discount_amount_total_sp_wo_tax" type="number" step="any" placeholder="e.g. 1372.26" data-i18n-placeholder="disc_amount_total_ph">
+                <small data-i18n="disc_amount_total_help">Input Selling Price without Tax in USD from Supplier Charges section</small>
+              </div>
+              <div class="field">
+                <label data-i18n="disc_amount_pct_label"><b>Discount %</b></label>
+                <input id="discount_amount_pct" type="number" step="any" placeholder="e.g. 0.1" data-i18n-placeholder="disc_amount_pct_ph">
+                <small data-i18n="disc_amount_pct_help">Input Discount %</small>
+              </div>
+            </div>
+            <div class="result">
+              <div class="label" data-i18n="disc_amount_result_label"><b>Amount to be deducted for discount</b></div>
+              <div class="value" id="discount_amount_result">0.00</div>
+            </div>
+            <div class="inline-note" data-i18n="disc_amount_formula">
+              Formula: Total Selling Price w/o Tax × Discount %
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  
+// Register PWA Service Worker gracefully on window launch
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then((reg) => console.log("Service Worker successfully configured:", reg.scope))
+      .catch((err) => console.warn("Service worker registration dropped:", err));
+  });
+}
+
+  <script>
+    const q = (id) => document.getElementById(id);
+    const STORAGE_KEY = "chargesCalcV3State";
+
+    function num(id) {
+      const el = q(id);
+      if (!el) return 0;
+      const v = parseFloat(el.value);
+      return isNaN(v) ? 0 : v;
+    }
+
+    function percent(id) { return num(id) / 100; }
+    function fmt(v) { return !isFinite(v) ? "0.00" : Number(v).toFixed(2); }
+
+    function bind(ids, fn) {
+      ids.forEach(id => {
+        const el = q(id);
+        if (el) {
+          el.addEventListener("input", () => {
+            fn();
+            autoSaveState();
+          });
+        }
+      });
+    }
+
+    function autoCopySellingPriceToPax() {
+      const sellingPriceResult = q("selling_price_usd_result")?.textContent || "0.00";
+      const paxInput = q("pax_selling_price_usd");
+      if (!paxInput) return;
+      paxInput.value = sellingPriceResult === "0.00" ? "" : sellingPriceResult;
+      calculatePaxCurrency();
+    }
+
+    function calculateSellingPrice() {
+      const localPrice = num("selling_local_price");
+      const markup = percent("selling_markup");
+      const exchangeRate = num("selling_exchange_rate");
+      const result = exchangeRate === 0 ? 0 : (localPrice + (localPrice * markup)) / exchangeRate;
+      q("selling_price_usd_result").textContent = fmt(result);
+      autoCopySellingPriceToPax();
+    }
+
+    function calculatePaxCurrency() {
+      const sellingPriceUSD = num("pax_selling_price_usd");
+      const exchangeRateFromPaymentsTab = num("pax_exchange_rate");
+      const result = sellingPriceUSD * exchangeRateFromPaymentsTab;
+      q("pax_currency_result").textContent = fmt(result);
+    }
+
+    function calculateLocalPrice() {
+      const sellingPrice = num("local_selling_price");
+      const commission = percent("local_commission");
+      const exchangeRate = num("local_exchange_rate");
+      const result = (sellingPrice - (sellingPrice * commission)) * exchangeRate;
+      q("local_price_result").textContent = fmt(result);
+    }
+
+    function calculateMarriott() {
+      const priceGivenByHotelInLocalCurrency = num("marriott_price_given_hotel_local");
+      const exchangeRate = num("marriott_exchange_rate");
+      const sellingPrice = exchangeRate === 0 ? 0 : priceGivenByHotelInLocalCurrency / exchangeRate;
+      const localPrice = exchangeRate === 0 ? 0 : (sellingPrice * 0.845) * exchangeRate;
+      q("marriott_selling_price_result").textContent = fmt(sellingPrice);
+      q("marriott_local_price_result").textContent = fmt(localPrice);
+    }
+
+    function calculateEXB() {
+      const localPriceForEXBGivenByHotel = num("exb_local_price");
+      const markup = percent("exb_markup");
+      const exchangeRate = num("exb_exchange_rate");
+      const result = exchangeRate === 0 ? 0 : (localPriceForEXBGivenByHotel * (1 + markup)) / exchangeRate;
+      q("exb_selling_price_result").textContent = fmt(result);
+    }
+
+    function calculateBcom() {
+      const value = num("bcom_sp_lp");
+      q("bcom_result").textContent = fmt(value);
+    }
+
+    function calculateExistingDiscountPct() {
+      const totalSellingPriceWithoutTax = num("existing_discount_total_sp_wo_tax");
+      const discountAmount = num("existing_discount_amount");
+      const result = totalSellingPriceWithoutTax === 0 ? 0 : discountAmount / totalSellingPriceWithoutTax;
+      q("existing_discount_pct_result").textContent = fmt(result);
+    }
+
+    function calculateDiscountAmountFromSellingPrice() {
+      const oldTotalSellingPrice = num("discount_from_sp_old_total_sp");
+      const newTotalSellingPrice = num("discount_from_sp_new_total_sp");
+      const oldDiscountAmount = num("discount_from_sp_old_discount_amount");
+      const result = oldTotalSellingPrice === 0 ? 0 : (oldDiscountAmount * newTotalSellingPrice) / oldTotalSellingPrice;
+      q("discount_from_sp_new_discount_result").textContent = fmt(result);
+    }
+
+    function calculateDiscountAmount() {
+      const totalSellingPriceWithoutTax = num("discount_amount_total_sp_wo_tax");
+      const discountPct = num("discount_amount_pct");
+      const result = totalSellingPriceWithoutTax * discountPct;
+      q("discount_amount_result").textContent = fmt(result);
+    }
+
+    function calculateAll() {
+      calculateSellingPrice();
+      calculatePaxCurrency();
+      calculateLocalPrice();
+      calculateMarriott();
+      calculateEXB();
+      calculateBcom();
+      calculateExistingDiscountPct();
+      calculateDiscountAmountFromSellingPrice();
+      calculateDiscountAmount();
+    }
+
+    function clearAll() {
+      document.querySelectorAll("input[type='number']").forEach(i => i.value = "");
+      document.querySelectorAll(".value").forEach(v => v.textContent = "0.00");
+      localStorage.removeItem(STORAGE_KEY);
+      calculateAll();
+    }
+
+    // Tab Navigation
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        q(btn.dataset.tab).classList.add("active");
+        if (window.innerWidth <= 1100) closeMobileSidebar();
+      });
+    });
+
+    bind(["selling_local_price", "selling_markup", "selling_exchange_rate"], calculateSellingPrice);
+    bind(["pax_selling_price_usd", "pax_exchange_rate"], calculatePaxCurrency);
+    bind(["local_selling_price", "local_commission", "local_exchange_rate"], calculateLocalPrice);
+    bind(["marriott_price_given_hotel_local", "marriott_exchange_rate"], calculateMarriott);
+    bind(["exb_local_price", "exb_markup", "exb_exchange_rate"], calculateEXB);
+    bind(["bcom_sp_lp"], calculateBcom);
+    bind(["existing_discount_total_sp_wo_tax", "existing_discount_amount"], calculateExistingDiscountPct);
+    bind(["discount_from_sp_old_total_sp", "discount_from_sp_new_total_sp", "discount_from_sp_old_discount_amount"], calculateDiscountAmountFromSellingPrice);
+    bind(["discount_amount_total_sp_wo_tax", "discount_amount_pct"], calculateDiscountAmount);
+
+    const app = q("app");
+    const sidebar = q("sidebar");
+    const themeToggle = q("themeToggle");
+    const languageSelect = q("languageSelect");
+    const mobileMenuBtn = q("mobileMenuBtn");
+    const sidebarOverlay = q("sidebarOverlay");
+
+    function isMobile() { return window.innerWidth <= 1100; }
+
+    function openMobileSidebar() {
+      sidebar.classList.add("mobile-open");
+      sidebarOverlay.classList.add("visible");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeMobileSidebar() {
+      sidebar.classList.remove("mobile-open");
+      sidebarOverlay.classList.remove("visible");
+      document.body.style.overflow = "";
+    }
+
+    mobileMenuBtn.addEventListener("click", () => {
+      if (sidebar.classList.contains("mobile-open")) closeMobileSidebar();
+      else openMobileSidebar();
+    });
+
+    sidebarOverlay.addEventListener("click", closeMobileSidebar);
+
+    function setTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      themeToggle.checked = theme === "dark";
+      localStorage.setItem("theme", theme);
+    }
+
+    themeToggle.addEventListener("change", () => setTheme(themeToggle.checked ? "dark" : "light"));
+
+    // Set Default Widget Date to Today
+    const wDate = q("widget_date");
+    if(wDate) {
+      wDate.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Exchange Rate Fetch Function
+    async function fetchWidgetRate() {
+      let date = q("widget_date").value;
+      const today = new Date().toISOString().split('T')[0];
+      
+      // If the user selects today's date or a future date, fall back to "latest" to avoid 404s
+      if (!date || date >= today) {
+         date = "latest";
+      }
+
+      const from = q("widget_from").value;
+      const to = q("widget_to").value;
+      const resEl = q("widget_result");
+
+      if (from === to) {
+        resEl.textContent = "1.0000";
+        return;
+      }
+
+      resEl.innerHTML = '<span style="font-size:12px; color:var(--muted)">Fetching...</span>';
+      
+      try {
+        const url = `https://api.frankfurter.dev/v1/${date}?base=${from}&symbols=${to}`;
+        const resp = await fetch(url);
+        
+        if (!resp.ok) {
+           throw new Error(`API Error: ${resp.status}`);
+        }
+        
+        const data = await resp.json();
+        
+        if (data.rates && data.rates[to]) {
+           resEl.textContent = data.rates[to].toFixed(4);
+        } else {
+           resEl.textContent = "N/A";
+        }
+      } catch (err) {
+        console.error("Exchange Rate Error:", err);
+        resEl.innerHTML = '<span style="font-size:12px; color:#E21836">Unavailable</span>';
+      }
+    }
+
+    // Attach Event Listener for the widget
+    q("widget_btn")?.addEventListener("click", fetchWidgetRate);
+
+
+    const translations = {
+      en: {
+        language: "Language", dark_mode: "Dark Mode", clear_all: "Clear All",
+        brand_title: "Chargelator v3", brand_subtitle: "Web version",
+        nav_selling_usd: "Selling Price (USD)", nav_pax_currency: "Selling Price (Pax Currency)",
+        nav_local_price: "Calculate Local Price", nav_special_rates: "Selling Price (Marriott / EXB / B.com)",
+        nav_discounts: "Calculate Discounts", page_title: "Charges Tab Calculator v3",
+        page_subtitle: "as per the original v2 Excel-file",
+        widget_title: "Live Rates", widget_fetch: "Fetch Rate",
+        sp_title: "Calculating Selling Price in USD", sp_desc: "Calculating Selling Price (when we know Local Price)",
+        sp_instruction: "There is no data in smart search, hotel has availability.<br>Step 1: Insert the data in the blue highlighted input fields. After info is inserted, the total Selling Price will be calculated in the result field below.<br>Step 2: Selling Price auto-copied to Charges Tab.",
+        sp_local_price_label: "<b>Local Price</b>", sp_local_price_help: "Input Local Price given by the hotel in local currency",
+        sp_markup_label: "<b>Markup %</b>", sp_markup_help: "Input the Markup from the Supplier Charges section",
+        sp_exchange_label: "<b>Exchange rate</b>", sp_exchange_help: "Input the Exchange Rate from the Supplier Charges section",
+        sp_result_label: "<b>Selling price in USD</b>", sp_formula: "Formula: (Local Price + (Local Price × Markup %)) ÷ Exchange rate",
+        pax_title: "Calculating Selling Price in Customers Currency", pax_desc: "When we calculated SP in USD",
+        pax_instruction: "Insert the data in the blue highlighted input fields. After info is inserted, the total Selling Price in Pax Currency will be calculated below.",
+        pax_usd_label: "<b>Selling Price in USD</b>", pax_usd_help: "Input Selling Prices in USD from the Supplier Charges section",
+        pax_exchange_label: "<b>Exchange Rate from Customer Payments</b>", pax_exchange_help: "Input the exchange rate from the Customer Payments section",
+        pax_result_label: "<b>Selling Price in pax currency</b>", pax_formula: "Formula: Selling Price in USD × Exchange Rate from Customer Payments",
+        lp_title: "Calculating Local Price", lp_desc: "Calculating Local Price (when we know selling price)",
+        lp_instruction: "No data in Smart Search, hotel has availability.<br>Step 1: Insert the data in the blue highlighted input fields. After info is inserted, the total Local Price will be calculated below.<br>Step 2: Copy Local Price to Charges Tab.",
+        lp_selling_label: "<b>Selling price</b>", lp_selling_help: "Input Selling Price in USD from Supplier Charges section",
+        lp_commission_label: "<b>Commission %</b>", lp_commission_help: "Input Commission % from Supplier Charges section",
+        lp_exchange_label: "<b>Exchange rate</b>", lp_exchange_help: "Input Exchange Rate from Supplier Charges section",
+        lp_result_label: "<b>Local Price</b>", lp_formula: "Formula: (Selling price - (Selling price × Commission %)) × Exchange rate",
+        marriott_section: "MARRIOTT", marriott_title: "Price calculation for MARRIOTT merchant commission",
+        marriott_instruction: "No data in Smart Search, hotel has availability.<br>Insert the data in the blue highlighted input fields. After info is inserted, SP and LP will be calculated below.",
+        marriott_price_label: "<b>Price given by hotel in local currency</b>", marriott_price_help: "Input Local Price given by the hotel in local currency",
+        marriott_exchange_label: "<b>Exchange rate</b>", marriott_exchange_help: "Input Exchange Rate from Supplier Charges section",
+        marriott_sp_label: "<b>Selling price</b>", marriott_lp_label: "<b>Local price</b>",
+        marriott_formula: "Formula: Selling price = Hotel Price ÷ Exchange rate, Local price = (Selling price × 0.845) × Exchange rate",
+        exb_section: "EXB- Extra Bed", exb_title: "Selling Price for Extra Bed", exb_desc: "Pax pays to Agoda",
+        exb_instruction: "No data in Smart Search, hotel has availability.<br>Insert the data in the blue highlighted input fields. After info is inserted, the total SP for Extra Bed will be calculated below.",
+        exb_local_label: "<b>Local Price for EXB given by hotel</b>", exb_local_help: "Input Local Price for Extra Bed given by hotel",
+        exb_markup_label: "<b>Markup %</b>", exb_markup_help: "Input the Markup, Always 5%.",
+        exb_exchange_label: "<b>Exchange rate</b>", exb_exchange_help: "Input Exchange Rate from Supplier Charges section",
+        exb_result_label: "<b>Selling price for Extra Bed</b>", exb_formula: "Formula: Local Price for EXB × (1 + Markup %) ÷ Exchange rate",
+        bcom_section: "BOOKING.COM", bcom_title: "Price calculation for BOOKING.COM", bcom_desc: "There is no need for SP/LP calculation for B.com bookings since Selling Price equals Local Price",
+        bcom_instruction: "Enter a value where Selling Price equals Local Price.", bcom_label: "SP=LP", bcom_help: "Same value will be used for both SP and LP.", bcom_result_label: "SP=LP",
+        disc_existing_title: "Calculating Existing Discount %", disc_existing_instruction: "Insert the data in the blue highlighted input fields. After info is inserted, the total Discount Percentage Used will be calculated below.",
+        disc_existing_total_label: "<b>Total Selling Price w/o Tax</b>", disc_existing_total_help: "Input Total Selling Price amount (Selling Price w/o Tax + Discount amount) from Supplier Charges section",
+        disc_existing_amount_label: "<b>Discount amount</b>", disc_existing_amount_help: "Input Discount amount taken from Supplier Charges section",
+        disc_existing_result_label: "<b>Total Discount % used</b>", disc_existing_formula: "Formula: Discount amount ÷ Total Selling Price w/o Tax",
+        disc_from_sp_title: "Calculating Discount Amount from Selling Price", disc_from_sp_instruction: "Insert the data in the blue highlighted input fields. After info is inserted, the total New Discount Price will be calculated below.",
+        disc_from_sp_old_total_label: "<b>Old Total Selling Price</b>", disc_from_sp_old_total_help: "Input Total Selling Price amount (Selling Price with Tax - Discount amount) from Supplier Charges section",
+        disc_from_sp_new_total_label: "<b>New Total Selling Price</b>", disc_from_sp_new_total_help: "Input New Total Selling Price",
+        disc_from_sp_old_discount_label: "<b>Old Discount amount</b>", disc_from_sp_old_discount_help: "Input old discount amount from Supplier Charges section",
+        disc_from_sp_result_label: "<b>New Total Discount Price</b>", disc_from_sp_formula: "Formula: Old Discount amount × New Total Selling Price ÷ Old Total Selling Price",
+        disc_amount_title: "Calculating Discount Amount", disc_amount_instruction: "Insert the data in the blue highlighted input fields. After info is inserted, the total Discount Amount will be calculated below.",
+        disc_amount_total_label: "<b>Total Selling Price w/o Tax</b>", disc_amount_total_help: "Input Selling Price without Tax in USD from Supplier Charges section",
+        disc_amount_pct_label: "<b>Discount %</b>", disc_amount_pct_help: "Input Discount %",
+        disc_amount_result_label: "<b>Amount to be deducted for discount</b>", disc_amount_formula: "Formula: Total Selling Price w/o Tax × Discount %",
+        sp_local_price_ph: "e.g. 37.62", sp_markup_ph: "e.g. 3.8", sp_exchange_ph: "e.g. 1", pax_usd_ph: "e.g. 39.049560", pax_exchange_ph: "e.g. 6.8128",
+        lp_selling_ph: "e.g. 15.64", lp_commission_ph: "e.g. 1.1", lp_exchange_ph: "e.g. 3.9746", marriott_price_ph: "Enter amount", marriott_exchange_ph: "Enter rate",
+        exb_local_ph: "e.g. 300", exb_markup_ph: "e.g. 5", exb_exchange_ph: "e.g. 30.3748", bcom_ph: "Enter amount", disc_existing_total_ph: "e.g. 214.79",
+        disc_existing_amount_ph: "e.g. 15.04", disc_from_sp_old_total_ph: "e.g. 1939.83", disc_from_sp_new_total_ph: "e.g. 1920.07", disc_from_sp_old_discount_ph: "e.g. 120",
+        disc_amount_total_ph: "e.g. 1372.26", disc_amount_pct_ph: "e.g. 0.1"
+      },
+      zh: {
+        language: "语言", dark_mode: "深色模式", clear_all: "清空全部", brand_title: "费用计算器", brand_subtitle: "与 Excel 对齐的网页版",
+        nav_selling_usd: "销售价 (USD)", nav_pax_currency: "销售价 (客户货币)", nav_local_price: "计算本地价格", nav_special_rates: "销售价 (Marriott / EXB / B.com)",
+        nav_discounts: "计算折扣", page_title: "Charges Tab Calculator v3", page_subtitle: "根据原始 Excel 文件说明",
+        sp_title: "计算美元销售价", sp_desc: "计算销售价（已知本地价格）", sp_instruction: "智能搜索中无数据，酒店有空房。<br>步骤 1：在蓝色高亮的输入框中填入数据。填入后，总销售价将在下方结果框中计算出。<br>步骤 2：销售价自动复制到 Charges 标签页。",
+        sp_local_price_label: "<b>本地价格</b>", sp_local_price_help: "输入酒店提供的当地货币价格", sp_markup_label: "<b>加价 %</b>", sp_markup_help: "输入供应商费用部分的加价",
+        sp_exchange_label: "<b>汇率</b>", sp_exchange_help: "输入供应商费用部分的汇率", sp_result_label: "<b>美元销售价</b>", sp_formula: "公式：(本地价格 + (本地价格 × 加价 %)) ÷ 汇率",
+        pax_title: "计算客户货币销售价", pax_desc: "当已计算出美元销售价时", pax_instruction: "在蓝色高亮的输入框中填入数据。填入后，客户货币销售价将在下方计算出。",
+        pax_usd_label: "<b>美元销售价</b>", pax_usd_help: "输入供应商费用部分的美元销售价", pax_exchange_label: "<b>客户付款汇率</b>", pax_exchange_help: "输入客户付款部分的汇率",
+        pax_result_label: "<b>客户货币销售价</b>", pax_formula: "公式：美元销售价 × 客户付款汇率",
+        lp_title: "计算本地价格", lp_desc: "计算本地价格（已知销售价）", lp_instruction: "智能搜索中无数据，酒店有空房。<br>步骤 1：在蓝色高亮的输入框中填入数据。填入后，总本地价格将在下方计算出。<br>步骤 2：将本地价格复制到 Charges 标签页。",
+        lp_selling_label: "<b>销售价</b>", lp_selling_help: "输入供应商费用部分的美元销售价", lp_commission_label: "<b>佣金</b>", lp_commission_help: "输入供应商费用部分的佣金",
+        lp_exchange_label: "<b>汇率</b>", lp_exchange_help: "输入供应商费用部分的汇率", lp_result_label: "<b>本地价格</b>", lp_formula: "公式：(销售价 - (销售价 × 佣金 %)) × 汇率",
+        marriott_section: "MARRIOTT", marriott_title: "MARRIOTT 商家佣金价格计算", marriott_instruction: "智能搜索中无数据，酒店有空房。<br>在蓝色高亮的输入框中填入数据。填入后，销售价和本地价格将在下方计算出。",
+        marriott_price_label: "<b>酒店提供的当地货币价格</b>", marriott_price_help: "输入酒店提供的当地货币价格", marriott_exchange_label: "<b>汇率</b>", marriott_exchange_help: "输入供应商费用部分的汇率",
+        marriott_sp_label: "<b>销售价</b>", marriott_lp_label: "<b>本地价格</b>", marriott_formula: "公式：销售价 = 酒店价格 ÷ 汇率，本地价格 = (销售价 × 0.845) × 汇率",
+        exb_section: "EXB - 加床", exb_title: "加床销售价", exb_desc: "客户支付给 Agoda", exb_instruction: "智能搜索中无数据，酒店有空房。<br>在蓝色高亮的输入框中填入数据。填入后，加床销售价将在下方计算出。",
+        exb_local_label: "<b>酒店提供的加床本地价格</b>", exb_local_help: "输入酒店提供的加床本地价格", exb_markup_label: "<b>加价 %</b>", exb_markup_help: "输入加价，始终为 5%。",
+        exb_exchange_label: "<b>汇率</b>", exb_exchange_help: "输入供应商费用部分的汇率", exb_result_label: "<b>加床销售价</b>", exb_formula: "公式：加床本地价格 × (1 + 加价 %) ÷ 汇率",
+        bcom_section: "BOOKING.COM", bcom_title: "BOOKING.COM 价格计算", bcom_desc: "由于销售价等于本地价格，因此 B.com 预订无需计算销售价/本地价格", bcom_instruction: "输入一个值，其中销售价等于本地价格。",
+        bcom_label: "销售价=本地价格", bcom_help: "销售价和本地价格使用相同的值。", bcom_result_label: "销售价=本地价格",
+        disc_existing_title: "计算现有折扣 %", disc_existing_instruction: "在蓝色高亮的输入框中填入数据。填入后，总折扣百分比将在下方计算出。",
+        disc_existing_total_label: "<b>除税后的总销售价</b>", disc_existing_total_help: "输入供应商费用部分的总销售金额（除税后的销售价 + 折扣金额）",
+        disc_existing_amount_label: "<b>折扣金额</b>", disc_existing_amount_help: "输入供应商费用部分的折扣金额", disc_existing_result_label: "<b>使用的总折扣 %</b>", disc_existing_formula: "公式：折扣金额 ÷ 除税后的总销售价",
+        disc_from_sp_title: "从销售价计算折扣金额", disc_from_sp_instruction: "在蓝色高亮的输入框中填入数据。填入后，新折扣价格将在下方计算出。",
+        disc_from_sp_old_total_label: "<b>旧总销售价</b>", disc_from_sp_old_total_help: "输入供应商费用部分的总销售金额（含税销售价 - 折扣金额）",
+        disc_from_sp_new_total_label: "<b>新总销售价</b>", disc_from_sp_new_total_help: "输入新总销售金额", disc_from_sp_old_discount_label: "<b>旧折扣金额</b>", disc_from_sp_old_discount_help: "输入供应商费用部分的旧折扣金额",
+        disc_from_sp_result_label: "<b>新总折扣价格</b>", disc_from_sp_formula: "公式：旧折扣金额 × 新总销售价 ÷ 旧总销售价",
+        disc_amount_title: "计算折扣金额", disc_amount_instruction: "在蓝色高亮的输入框中填入数据。填入后，折扣金额将在下方计算出。",
+        disc_amount_total_label: "<b>除税后的总销售价</b>", disc_amount_total_help: "输入供应商费用部分的美元除税销售价", disc_amount_pct_label: "<b>折扣 %</b>", disc_amount_pct_help: "输入折扣 %",
+        disc_amount_result_label: "<b>扣除的折扣金额</b>", disc_amount_formula: "公式：除税后的总销售价 × 折扣 %",
+        sp_local_price_ph: "例如：37.62", sp_markup_ph: "例如：3.8", sp_exchange_ph: "例如：1", pax_usd_ph: "例如：39.049560", pax_exchange_ph: "例如：6.8128",
+        lp_selling_ph: "例如：15.64", lp_commission_ph: "例如：1.1", lp_exchange_ph: "例如：3.9746", marriott_price_ph: "输入金额", marriott_exchange_ph: "输入汇率",
+        exb_local_ph: "例如：300", exb_markup_ph: "例如：5", exb_exchange_ph: "例如：30.3748", bcom_ph: "输入金额", disc_existing_total_ph: "例如：214.79",
+        disc_existing_amount_ph: "例如：15.04", disc_from_sp_old_total_ph: "例如：1939.83", disc_from_sp_new_total_ph: "例如：1920.07", disc_from_sp_old_discount_ph: "例如：120",
+        disc_amount_total_ph: "例如：1372.26", disc_amount_pct_ph: "例如：0.1"
+      },
+      ja: {
+        language: "言語", dark_mode: "ダークモード", clear_all: "すべてクリア", brand_title: "料金計算機", brand_subtitle: "Excel準拠Web版",
+        nav_selling_usd: "販売価格 (USD)", nav_pax_currency: "販売価格 (顧客通貨)", nav_local_price: "現地価格を計算", nav_special_rates: "販売価格 (Marriott / EXB / B.com)",
+        nav_discounts: "割引を計算", page_title: "Charges Tab Calculator v3", page_subtitle: "元のExcelファイルの指示に基づく",
+        sp_title: "USDでの販売価格の計算", sp_desc: "販売価格の計算（現地価格が既知の場合）", sp_instruction: "スマートサーチにデータがなく、ホテルに空室がある場合。<br>ステップ 1: 青くハイライトされた入力フィールドにデータを入力します。入力後、合計販売価格が下の結果フィールドに計算されます。<br>ステップ 2: 販売価格がChargesタブに自動コピーされます。",
+        sp_local_price_label: "<b>現地価格</b>", sp_local_price_help: "ホテルから提供された現地通貨での現地価格を入力します", sp_markup_label: "<b>マークアップ %</b>", sp_markup_help: "サプライヤー料金セクションのマークアップを入力します",
+        sp_exchange_label: "<b>為替レート</b>", sp_exchange_help: "サプライヤー料金セクションの為替レートを入力します", sp_result_label: "<b>USDでの販売価格</b>", sp_formula: "計算式: (現地価格 + (現地価格 × マークアップ %)) ÷ 為替レート",
+        pax_title: "顧客通貨での販売価格の計算", pax_desc: "USDで販売価格を計算した場合", pax_instruction: "青くハイライトされた入力フィールドにデータを入力します。入力後、顧客通貨での合計販売価格が下に計算されます。",
+        pax_usd_label: "<b>USDでの販売価格</b>", pax_usd_help: "サプライヤー料金セクションからUSDの販売価格を入力します", pax_exchange_label: "<b>顧客支払い為替レート</b>", pax_exchange_help: "顧客支払いセクションから為替レートを入力します",
+        pax_result_label: "<b>顧客通貨での販売価格</b>", pax_formula: "計算式: USDの販売価格 × 顧客支払い為替レート",
+        lp_title: "現地価格の計算", lp_desc: "現地価格の計算（販売価格が既知の場合）", lp_instruction: "スマートサーチにデータがなく、ホテルに空室がある場合。<br>ステップ 1: 青くハイライトされた入力フィールドにデータを入力します。入力後、合計現地価格が下に計算されます。<br>ステップ 2: 現地価格をChargesタブにコピーします。",
+        lp_selling_label: "<b>販売価格</b>", lp_selling_help: "サプライヤー料金セクションからUSDの販売価格を入力します", lp_commission_label: "<b>コミッション</b>", lp_commission_help: "サプライヤー料金セクションのコミッションを入力します",
+        lp_exchange_label: "<b>為替レート</b>", lp_exchange_help: "サプライヤー料金セクションの為替レートを入力します", lp_result_label: "<b>現地価格</b>", lp_formula: "計算式: (販売価格 - (販売価格 × コミッション %)) × 為替レート",
+        marriott_section: "MARRIOTT", marriott_title: "MARRIOTTのマーチャントコミッション価格計算", marriott_instruction: "スマートサーチにデータがなく、ホテルに空室がある場合。<br>青くハイライトされた入力フィールドにデータを入力します。入力後、販売価格(SP)と現地価格(LP)が下に計算されます。",
+        marriott_price_label: "<b>ホテル提供の現地通貨価格</b>", marriott_price_help: "ホテルから提供された現地通貨での現地価格を入力します", marriott_exchange_label: "<b>為替レート</b>", marriott_exchange_help: "サプライヤー料金セクションの為替レートを入力します",
+        marriott_sp_label: "<b>販売価格</b>", marriott_lp_label: "<b>現地価格</b>", marriott_formula: "計算式: 販売価格 = ホテル価格 ÷ 為替レート, 現地価格 = (販売価格 × 0.845) × 為替レート",
+        exb_section: "EXB - エキストラベッド", exb_title: "エキストラベッドの販売価格", exb_desc: "顧客がAgodaに支払う", exb_instruction: "スマートサーチにデータがなく、ホテルに空室がある場合。<br>青くハイライトされた入力フィールドにデータを入力します。入力後、エキストラベッドの合計販売価格が下に計算されます。",
+        exb_local_label: "<b>ホテル提供のエキストラベッド現地価格</b>", exb_local_help: "ホテルから提供されたエキストラベッドの現地価格を入力します", exb_markup_label: "<b>マークアップ %</b>", exb_markup_help: "マークアップを入力します。常に5%です。",
+        exb_exchange_label: "<b>為替レート</b>", exb_exchange_help: "サプライヤー料金セクションの為替レートを入力します", exb_result_label: "<b>エキストラベッドの販売価格</b>", exb_formula: "計算式: EXBの現地価格 × (1 + マークアップ %) ÷ 為替レート",
+        bcom_section: "BOOKING.COM", bcom_title: "BOOKING.COMの価格計算", bcom_desc: "販売価格が現地価格と等しいため、B.com予約のSP/LP計算は不要です", bcom_instruction: "販売価格が現地価格と等しい値を入力してください。",
+        bcom_label: "販売価格=現地価格", bcom_help: "SPとLPの両方に同じ値が使用されます。", bcom_result_label: "販売価格=現地価格",
+        disc_existing_title: "既存の割引 % の計算", disc_existing_instruction: "青くハイライトされた入力フィールドにデータを入力します。入力後、使用された合計割引率が下に計算されます。",
+        disc_existing_total_label: "<b>税抜きの合計販売価格</b>", disc_existing_total_help: "サプライヤー料金セクションから合計販売金額（税抜き販売価格 + 割引額）を入力します",
+        disc_existing_amount_label: "<b>割引額</b>", disc_existing_amount_help: "サプライヤー料金セクションから取得した割引額を入力します", disc_existing_result_label: "<b>使用された合計割引 %</b>", disc_existing_formula: "計算式: 割引額 ÷ 税抜きの合計販売価格",
+        disc_from_sp_title: "販売価格からの割引額の計算", disc_from_sp_instruction: "青くハイライトされた入力フィールドにデータを入力します。入力後、新しい割引価格が下に計算されます。",
+        disc_from_sp_old_total_label: "<b>以前の合計販売価格</b>", disc_from_sp_old_total_help: "サプライヤー料金セクションから合計販売金額（税込み販売価格 - 割引額）を入力します",
+        disc_from_sp_new_total_label: "<b>新しい合計販売価格</b>", disc_from_sp_new_total_help: "新しい合計販売価格を入力します", disc_from_sp_old_discount_label: "<b>以前の割引額</b>", disc_from_sp_old_discount_help: "サプライヤー料金セクションからの以前の割引額を入力します",
+        disc_from_sp_result_label: "<b>新しい合計割引価格</b>", disc_from_sp_formula: "計算式: 以前の割引額 × 新しい合計販売価格 ÷ 以前の合計販売価格",
+        disc_amount_title: "割引額の計算", disc_amount_instruction: "青くハイライトされた入力フィールドにデータを入力します。入力後、割引額が下に計算されます。",
+        disc_amount_total_label: "<b>税抜きの合計販売価格</b>", disc_amount_total_help: "サプライヤー料金セクションから税抜きのUSD販売価格を入力します", disc_amount_pct_label: "<b>割引 %</b>", disc_amount_pct_help: "割引 % を入力します",
+        disc_amount_result_label: "<b>割引される金額</b>", disc_amount_formula: "計算式: 税抜きの合計販売価格 × 割引 %",
+        sp_local_price_ph: "例: 37.62", sp_markup_ph: "例: 3.8", sp_exchange_ph: "例: 1", pax_usd_ph: "例: 39.049560", pax_exchange_ph: "例: 6.8128",
+        lp_selling_ph: "例: 15.64", lp_commission_ph: "例: 1.1", lp_exchange_ph: "例: 3.9746", marriott_price_ph: "金額を入力", marriott_exchange_ph: "レートを入力",
+        exb_local_ph: "例: 300", exb_markup_ph: "例: 5", exb_exchange_ph: "例: 30.3748", bcom_ph: "金額を入力", disc_existing_total_ph: "例: 214.79",
+        disc_existing_amount_ph: "例: 15.04", disc_from_sp_old_total_ph: "例: 1939.83", disc_from_sp_new_total_ph: "例: 1920.07", disc_from_sp_old_discount_ph: "例: 120",
+        disc_amount_total_ph: "例: 1372.26", disc_amount_pct_ph: "例: 0.1"
+      },
+      id: {
+        language: "Bahasa", dark_mode: "Mode Gelap", clear_all: "Hapus Semua", brand_title: "Kalkulator Charges", brand_subtitle: "Versi web selaras Excel",
+        nav_selling_usd: "Harga Jual (USD)", nav_pax_currency: "Harga Jual (Mata Uang Pax)", nav_local_price: "Hitung Harga Lokal", nav_special_rates: "Harga Jual (Marriott / EXB / B.com)",
+        nav_discounts: "Hitung Diskon", page_title: "Charges Tab Calculator v3", page_subtitle: "sesuai petunjuk file Excel asli",
+        sp_title: "Menghitung Harga Jual dalam USD", sp_desc: "Menghitung Harga Jual (saat kita tahu Harga Lokal)", sp_instruction: "Tidak ada data di smart search, hotel memiliki ketersediaan.<br>Langkah 1: Masukkan data di kolom input biru. Setelah info dimasukkan, total Harga Jual akan dihitung di kolom hasil di bawah.<br>Langkah 2: Harga Jual otomatis disalin ke Tab Charges.",
+        sp_local_price_label: "<b>Harga Lokal</b>", sp_local_price_help: "Masukkan Harga Lokal yang diberikan hotel dalam mata uang lokal", sp_markup_label: "<b>Markup %</b>", sp_markup_help: "Masukkan Markup dari bagian Biaya Pemasok",
+        sp_exchange_label: "<b>Nilai tukar</b>", sp_exchange_help: "Masukkan Nilai Tukar dari bagian Biaya Pemasok", sp_result_label: "<b>Harga jual dalam USD</b>", sp_formula: "Rumus: (Harga Lokal + (Harga Lokal × Markup %)) ÷ Nilai tukar",
+        pax_title: "Menghitung Harga Jual dalam Mata Uang Pelanggan", pax_desc: "Ketika kita menghitung SP dalam USD", pax_instruction: "Masukkan data di kolom input biru. Setelah info dimasukkan, Harga Jual dalam Mata Uang Pax akan dihitung di bawah.",
+        pax_usd_label: "<b>Harga Jual dalam USD</b>", pax_usd_help: "Masukkan Harga Jual dalam USD dari bagian Biaya Pemasok", pax_exchange_label: "<b>Nilai Tukar dari Pembayaran Pelanggan</b>", pax_exchange_help: "Masukkan nilai tukar dari bagian Pembayaran Pelanggan",
+        pax_result_label: "<b>Harga Jual dalam mata uang pax</b>", pax_formula: "Rumus: Harga Jual dalam USD × Nilai Tukar dari Pembayaran Pelanggan",
+        lp_title: "Menghitung Harga Lokal", lp_desc: "Menghitung Harga Lokal (saat kita tahu harga jual)", lp_instruction: "Tidak ada data di Smart Search, hotel memiliki ketersediaan.<br>Langkah 1: Masukkan data di kolom input biru. Setelah info dimasukkan, total Harga Lokal akan dihitung di bawah.<br>Langkah 2: Salin Harga Lokal ke Tab Charges.",
+        lp_selling_label: "<b>Harga jual</b>", lp_selling_help: "Masukkan Harga Jual dalam USD dari bagian Biaya Pemasok", lp_commission_label: "<b>Komisi</b>", lp_commission_help: "Masukkan Komisi dari bagian Biaya Pemasok",
+        lp_exchange_label: "<b>Nilai tukar</b>", lp_exchange_help: "Masukkan Nilai Tukar dari bagian Biaya Pemasok", lp_result_label: "<b>Harga Lokal</b>", lp_formula: "Rumus: (Harga jual - (Harga jual × Komisi %)) × Nilai tukar",
+        marriott_section: "MARRIOTT", marriott_title: "Perhitungan harga untuk komisi pedagang MARRIOTT", marriott_instruction: "Tidak ada data di Smart Search, hotel memiliki ketersediaan.<br>Masukkan data di kolom input biru. Setelah info dimasukkan, SP dan LP akan dihitung di bawah.",
+        marriott_price_label: "<b>Harga dari hotel dalam mata uang lokal</b>", marriott_price_help: "Masukkan Harga Lokal yang diberikan hotel dalam mata uang lokal", marriott_exchange_label: "<b>Nilai tukar</b>", marriott_exchange_help: "Masukkan Nilai Tukar dari bagian Biaya Pemasok",
+        marriott_sp_label: "<b>Harga jual</b>", marriott_lp_label: "<b>Harga lokal</b>", marriott_formula: "Rumus: Harga jual = Harga Hotel ÷ Nilai tukar, Harga lokal = (Harga jual × 0.845) × Nilai tukar",
+        exb_section: "EXB- Tempat Tidur Ekstra", exb_title: "Harga Jual Tempat Tidur Ekstra", exb_desc: "Pax membayar ke Agoda", exb_instruction: "Tidak ada data di Smart Search, hotel memiliki ketersediaan.<br>Masukkan data di kolom input biru. Setelah info dimasukkan, total SP untuk Extra Bed akan dihitung di bawah.",
+        exb_local_label: "<b>Harga Lokal EXB dari hotel</b>", exb_local_help: "Masukkan Harga Lokal untuk Extra Bed dari hotel", exb_markup_label: "<b>Markup %</b>", exb_markup_help: "Masukkan Markup, Selalu 5%.",
+        exb_exchange_label: "<b>Nilai tukar</b>", exb_exchange_help: "Masukkan Nilai Tukar dari bagian Biaya Pemasok", exb_result_label: "<b>Harga jual Tempat Tidur Ekstra</b>", exb_formula: "Rumus: Harga Lokal EXB × (1 + Markup %) ÷ Nilai tukar",
+        bcom_section: "BOOKING.COM", bcom_title: "Perhitungan harga untuk BOOKING.COM", bcom_desc: "Tidak perlu perhitungan SP/LP untuk pemesanan B.com karena Harga Jual sama dengan Harga Lokal", bcom_instruction: "Masukkan nilai di mana Harga Jual sama dengan Harga Lokal.",
+        bcom_label: "SP=LP", bcom_help: "Nilai yang sama akan digunakan untuk SP dan LP.", bcom_result_label: "SP=LP",
+        disc_existing_title: "Menghitung % Diskon yang Ada", disc_existing_instruction: "Masukkan data di kolom input biru. Setelah info dimasukkan, Persentase Diskon yang Digunakan akan dihitung di bawah.",
+        disc_existing_total_label: "<b>Total Harga Jual tanpa Pajak</b>", disc_existing_total_help: "Masukkan Total Harga Jual (Harga Jual tanpa Pajak + Jumlah diskon) dari bagian Biaya Pemasok",
+        disc_existing_amount_label: "<b>Jumlah diskon</b>", disc_existing_amount_help: "Masukkan Jumlah diskon dari bagian Biaya Pemasok", disc_existing_result_label: "<b>Total Diskon % digunakan</b>", disc_existing_formula: "Rumus: Jumlah diskon ÷ Total Harga Jual tanpa Pajak",
+        disc_from_sp_title: "Menghitung Jumlah Diskon dari Harga Jual", disc_from_sp_instruction: "Masukkan data di kolom input biru. Setelah info dimasukkan, Total Harga Diskon Baru akan dihitung di bawah.",
+        disc_from_sp_old_total_label: "<b>Total Harga Jual Lama</b>", disc_from_sp_old_total_help: "Masukkan Total Harga Jual (Harga Jual dengan Pajak - Jumlah diskon) dari bagian Biaya Pemasok",
+        disc_from_sp_new_total_label: "<b>Total Harga Jual Baru</b>", disc_from_sp_new_total_help: "Masukkan Total Harga Jual Baru", disc_from_sp_old_discount_label: "<b>Jumlah diskon lama</b>", disc_from_sp_old_discount_help: "Masukkan jumlah diskon lama dari bagian Biaya Pemasok",
+        disc_from_sp_result_label: "<b>Total Harga Diskon Baru</b>", disc_from_sp_formula: "Rumus: Jumlah diskon lama × Total Harga Jual Baru ÷ Total Harga Jual Lama",
+        disc_amount_title: "Menghitung Jumlah Diskon", disc_amount_instruction: "Masukkan data di kolom input biru. Setelah info dimasukkan, Jumlah Diskon akan dihitung di bawah.",
+        disc_amount_total_label: "<b>Total Harga Jual tanpa Pajak</b>", disc_amount_total_help: "Masukkan Harga Jual tanpa Pajak dalam USD dari bagian Biaya Pemasok", disc_amount_pct_label: "<b>Diskon %</b>", disc_amount_pct_help: "Masukkan Diskon %",
+        disc_amount_result_label: "<b>Jumlah yang dikurangkan untuk diskon</b>", disc_amount_formula: "Rumus: Total Harga Jual tanpa Pajak × Diskon %",
+        sp_local_price_ph: "mis. 37.62", sp_markup_ph: "mis. 3.8", sp_exchange_ph: "mis. 1", pax_usd_ph: "mis. 39.049560", pax_exchange_ph: "mis. 6.8128",
+        lp_selling_ph: "mis. 15.64", lp_commission_ph: "mis. 1.1", lp_exchange_ph: "mis. 3.9746", marriott_price_ph: "Masukkan jumlah", marriott_exchange_ph: "Masukkan nilai",
+        exb_local_ph: "mis. 300", exb_markup_ph: "mis. 5", exb_exchange_ph: "mis. 30.3748", bcom_ph: "Masukkan jumlah", disc_existing_total_ph: "mis. 214.79",
+        disc_existing_amount_ph: "mis. 15.04", disc_from_sp_old_total_ph: "mis. 1939.83", disc_from_sp_new_total_ph: "mis. 1920.07", disc_from_sp_old_discount_ph: "mis. 120",
+        disc_amount_total_ph: "mis. 1372.26", disc_amount_pct_ph: "mis. 0.1"
+      },
+      ko: {
+        language: "언어", dark_mode: "다크 모드", clear_all: "모두 지우기", brand_title: "요금 계산기", brand_subtitle: "Excel 정렬 웹 버전",
+        nav_selling_usd: "판매가 (USD)", nav_pax_currency: "판매가 (고객 통화)", nav_local_price: "현지가 계산", nav_special_rates: "판매가 (Marriott / EXB / B.com)",
+        nav_discounts: "할인 계산", page_title: "Charges Tab Calculator v3", page_subtitle: "원본 Excel 파일 지침 기준",
+        sp_title: "USD 판매가 계산", sp_desc: "판매가 계산 (현지가를 알 때)", sp_instruction: "스마트 검색에 데이터가 없고 호텔에 빈 객실이 있습니다.<br>1단계: 파란색 입력란에 데이터를 입력합니다. 입력 후 아래 결과 필드에 총 판매가가 계산됩니다.<br>2단계: 판매가가 Charges 탭에 자동 복사됩니다.",
+        sp_local_price_label: "<b>현지가</b>", sp_local_price_help: "호텔에서 제공한 현지 통화 기준 현지가 입력", sp_markup_label: "<b>마크업 %</b>", sp_markup_help: "공급업체 요금 섹션의 마크업 입력",
+        sp_exchange_label: "<b>환율</b>", sp_exchange_help: "공급업체 요금 섹션의 환율 입력", sp_result_label: "<b>USD 판매가</b>", sp_formula: "공식: (현지가 + (현지가 × 마크업 %)) ÷ 환율",
+        pax_title: "고객 통화 기준 판매가 계산", pax_desc: "USD 판매가를 계산했을 때", pax_instruction: "파란색 입력란에 데이터를 입력합니다. 입력 후 아래에 고객 통화 기준 총 판매가가 계산됩니다.",
+        pax_usd_label: "<b>USD 판매가</b>", pax_usd_help: "공급업체 요금 섹션의 USD 판매가 입력", pax_exchange_label: "<b>고객 지불 환율</b>", pax_exchange_help: "고객 지불 섹션의 환율 입력",
+        pax_result_label: "<b>고객 통화 기준 판매가</b>", pax_formula: "공식: USD 판매가 × 고객 지불 환율",
+        lp_title: "현지가 계산", lp_desc: "현지가 계산 (판매가를 알 때)", lp_instruction: "스마트 검색에 데이터가 없고 호텔에 빈 객실이 있습니다.<br>1단계: 파란색 입력란에 데이터를 입력합니다. 입력 후 아래에 총 현지가가 계산됩니다.<br>2단계: 현지가를 Charges 탭에 복사합니다.",
+        lp_selling_label: "<b>판매가</b>", lp_selling_help: "공급업체 요금 섹션의 USD 판매가 입력", lp_commission_label: "<b>커미션</b>", lp_commission_help: "공급업체 요금 섹션의 커미션 입력",
+        lp_exchange_label: "<b>환율</b>", lp_exchange_help: "공급업체 요금 섹션의 환율 입력", lp_result_label: "<b>현지가</b>", lp_formula: "공식: (판매가 - (판매가 × 커미션 %)) × 환율",
+        marriott_section: "MARRIOTT", marriott_title: "MARRIOTT 가맹점 커미션 가격 계산", marriott_instruction: "스마트 검색에 데이터가 없고 호텔에 빈 객실이 있습니다.<br>파란색 입력란에 데이터를 입력합니다. 입력 후 아래에 SP 및 LP가 계산됩니다.",
+        marriott_price_label: "<b>호텔 제공 현지 통화 가격</b>", marriott_price_help: "호텔에서 제공한 현지 통화 기준 현지가 입력", marriott_exchange_label: "<b>환율</b>", marriott_exchange_help: "공급업체 요금 섹션의 환율 입력",
+        marriott_sp_label: "<b>판매가</b>", marriott_lp_label: "<b>현지가</b>", marriott_formula: "공식: 판매가 = 호텔 가격 ÷ 환율, 현지가 = (판매가 × 0.845) × 환율",
+        exb_section: "EXB- 엑스트라 베드", exb_title: "엑스트라 베드 판매가", exb_desc: "고객이 아고다에 지불", exb_instruction: "스마트 검색에 데이터가 없고 호텔에 빈 객실이 있습니다.<br>파란색 입력란에 데이터를 입력합니다. 입력 후 아래에 엑스트라 베드 총 판매가가 계산됩니다.",
+        exb_local_label: "<b>호텔 제공 엑스트라 베드 현지가</b>", exb_local_help: "호텔에서 제공한 엑스트라 베드 현지가 입력", exb_markup_label: "<b>마크업 %</b>", exb_markup_help: "마크업 입력, 항상 5%.",
+        exb_exchange_label: "<b>환율</b>", exb_exchange_help: "공급업체 요금 섹션의 환율 입력", exb_result_label: "<b>엑스트라 베드 판매가</b>", exb_formula: "공식: EXB 현지가 × (1 + 마크업 %) ÷ 환율",
+        bcom_section: "BOOKING.COM", bcom_title: "BOOKING.COM 가격 계산", bcom_desc: "판매가와 현지가가 동일하므로 B.com 예약은 SP/LP 계산이 필요 없습니다.", bcom_instruction: "판매가와 현지가가 동일한 값을 입력하세요.",
+        bcom_label: "판매가=현지가", bcom_help: "SP와 LP에 동일한 값이 사용됩니다.", bcom_result_label: "판매가=현지가",
+        disc_existing_title: "기존 할인 % 계산", disc_existing_instruction: "파란색 입력란에 데이터를 입력합니다. 입력 후 아래에 사용된 총 할인 비율이 계산됩니다.",
+        disc_existing_total_label: "<b>세금 제외 총 판매가</b>", disc_existing_total_help: "공급업체 요금 섹션에서 총 판매액(세금 제외 판매가 + 할인 금액) 입력",
+        disc_existing_amount_label: "<b>할인 금액</b>", disc_existing_amount_help: "공급업체 요금 섹션에서 가져온 할인 금액 입력", disc_existing_result_label: "<b>사용된 총 할인 %</b>", disc_existing_formula: "공식: 할인 금액 ÷ 세금 제외 총 판매가",
+        disc_from_sp_title: "판매가에서 할인 금액 계산", disc_from_sp_instruction: "파란색 입력란에 데이터를 입력합니다. 입력 후 아래에 새로운 할인 가격이 계산됩니다.",
+        disc_from_sp_old_total_label: "<b>이전 총 판매가</b>", disc_from_sp_old_total_help: "공급업체 요금 섹션에서 총 판매액(세금 포함 판매가 - 할인 금액) 입력",
+        disc_from_sp_new_total_label: "<b>새 총 판매가</b>", disc_from_sp_new_total_help: "새로운 총 판매가 입력", disc_from_sp_old_discount_label: "<b>이전 할인 금액</b>", disc_from_sp_old_discount_help: "공급업체 요금 섹션에서 이전 할인 금액 입력",
+        disc_from_sp_result_label: "<b>새 총 할인 가격</b>", disc_from_sp_formula: "공식: 이전 할인 금액 × 새 총 판매가 ÷ 이전 총 판매가",
+        disc_amount_title: "할인 금액 계산", disc_amount_instruction: "파란색 입력란에 데이터를 입력합니다. 입력 후 아래에 할인 금액이 계산됩니다.",
+        disc_amount_total_label: "<b>세금 제외 총 판매가</b>", disc_amount_total_help: "공급업체 요금 섹션에서 세금 제외 USD 판매가 입력", disc_amount_pct_label: "<b>할인 %</b>", disc_amount_pct_help: "할인 % 입력",
+        disc_amount_result_label: "<b>할인 차감 금액</b>", disc_amount_formula: "공식: 세금 제외 총 판매가 × 할인 %",
+        sp_local_price_ph: "예: 37.62", sp_markup_ph: "예: 3.8", sp_exchange_ph: "예: 1", pax_usd_ph: "예: 39.049560", pax_exchange_ph: "예: 6.8128",
+        lp_selling_ph: "예: 15.64", lp_commission_ph: "예: 1.1", lp_exchange_ph: "예: 3.9746", marriott_price_ph: "금액 입력", marriott_exchange_ph: "환율 입력",
+        exb_local_ph: "예: 300", exb_markup_ph: "예: 5", exb_exchange_ph: "예: 30.3748", bcom_ph: "금액 입력", disc_existing_total_ph: "예: 214.79",
+        disc_existing_amount_ph: "예: 15.04", disc_from_sp_old_total_ph: "예: 1939.83", disc_from_sp_new_total_ph: "예: 1920.07", disc_from_sp_old_discount_ph: "예: 120",
+        disc_amount_total_ph: "예: 1372.26", disc_amount_pct_ph: "예: 0.1"
+      },
+      fil: {
+        language: "Wika", dark_mode: "Dark Mode", clear_all: "I-clear Lahat", brand_title: "Chargelator v3", brand_subtitle: "Web version",
+        nav_selling_usd: "Selling Price (USD)", nav_pax_currency: "Selling Price (Pax Currency)", nav_local_price: "Kalkulahin ang Local Price", nav_special_rates: "Selling Price (Marriott / EXB / B.com)",
+        nav_discounts: "Kalkulahin ang Discounts", page_title: "Charges Tab Calculator v3", page_subtitle: "ayon sa orihinal na Excel-file instructions",
+        sp_title: "Pagkalkula ng Selling Price sa USD", sp_desc: "Pagkalkula ng Selling Price (kung alam ang Local Price)", sp_instruction: "Walang data sa smart search, may availability ang hotel.<br>Step 1: Ipasok ang data sa blue input fields. Kapag naipasok na, ang kabuuang Selling Price ay lalabas sa ibaba.<br>Step 2: Awtomatikong makokopya ang Selling Price sa Charges Tab.",
+        sp_local_price_label: "<b>Local Price</b>", sp_local_price_help: "Ipasok ang Local Price na bigay ng hotel sa lokal na pera", sp_markup_label: "<b>Markup %</b>", sp_markup_help: "Ipasok ang Markup mula sa Supplier Charges section",
+        sp_exchange_label: "<b>Exchange rate</b>", sp_exchange_help: "Ipasok ang Exchange Rate mula sa Supplier Charges section", sp_result_label: "<b>Selling price sa USD</b>", sp_formula: "Pormula: (Local Price + (Local Price × Markup %)) ÷ Exchange rate",
+        pax_title: "Pagkalkula ng Selling Price sa Pera ng Customer", pax_desc: "Kapag nakalkula na ang SP sa USD", pax_instruction: "Ipasok ang data sa blue input fields. Kapag naipasok na, ang kabuuang Selling Price sa Pax Currency ay makakalkula sa ibaba.",
+        pax_usd_label: "<b>Selling Price sa USD</b>", pax_usd_help: "Ipasok ang Selling Price sa USD mula sa Supplier Charges section", pax_exchange_label: "<b>Exchange Rate mula sa Customer Payments</b>", pax_exchange_help: "Ipasok ang exchange rate mula sa Customer Payments section",
+        pax_result_label: "<b>Selling Price sa pax currency</b>", pax_formula: "Pormula: Selling Price sa USD × Exchange Rate mula sa Customer Payments",
+        lp_title: "Pagkalkula ng Local Price", lp_desc: "Pagkalkula ng Local Price (kung alam ang selling price)", lp_instruction: "Walang data sa Smart Search, may availability ang hotel.<br>Step 1: Ipasok ang data sa blue input fields. Kapag naipasok na, ang kabuuang Local Price ay lalabas sa ibaba.<br>Step 2: Kopyahin ang Local Price sa Charges Tab.",
+        lp_selling_label: "<b>Selling price</b>", lp_selling_help: "Ipasok ang Selling Price sa USD mula sa Supplier Charges section", lp_commission_label: "<b>Commission %</b>", lp_commission_help: "Ipasok ang Commission mula sa Supplier Charges section",
+        lp_exchange_label: "<b>Exchange rate</b>", lp_exchange_help: "Ipasok ang Exchange Rate mula sa Supplier Charges section", lp_result_label: "<b>Local Price</b>", lp_formula: "Pormula: (Selling price - (Selling price × Commission %)) × Exchange rate",
+        marriott_section: "MARRIOTT", marriott_title: "Pagkalkula para sa MARRIOTT merchant commission", marriott_instruction: "Walang data sa Smart Search, may availability ang hotel.<br>Ipasok ang data sa blue input fields. Pagkatapos, ang SP at LP ay makakalkula sa ibaba.",
+        marriott_price_label: "<b>Presyo mula sa hotel sa lokal na pera</b>", marriott_price_help: "Ipasok ang Local Price na bigay ng hotel sa lokal na pera", marriott_exchange_label: "<b>Exchange rate</b>", marriott_exchange_help: "Ipasok ang Exchange Rate mula sa Supplier Charges section",
+        marriott_sp_label: "<b>Selling price</b>", marriott_lp_label: "<b>Local price</b>", marriott_formula: "Pormula: Selling price = Presyo ng Hotel ÷ Exchange rate, Local price = (Selling price × 0.845) × Exchange rate",
+        exb_section: "EXB- Extra Bed", exb_title: "Selling Price para sa Extra Bed", exb_desc: "Pax magbabayad sa Agoda", exb_instruction: "Walang data sa Smart Search, may availability ang hotel.<br>Ipasok ang data sa blue input fields. Kapag naipasok na, ang kabuuang SP para sa Extra Bed ay lalabas sa ibaba.",
+        exb_local_label: "<b>Local Price para sa EXB mula sa hotel</b>", exb_local_help: "Ipasok ang Local Price para sa Extra Bed mula sa hotel", exb_markup_label: "<b>Markup %</b>", exb_markup_help: "Ipasok ang Markup, Laging 5%.",
+        exb_exchange_label: "<b>Exchange rate</b>", exb_exchange_help: "Ipasok ang Exchange Rate mula sa Supplier Charges section", exb_result_label: "<b>Selling price para sa Extra Bed</b>", exb_formula: "Pormula: Local Price para sa EXB × (1 + Markup %) ÷ Exchange rate",
+        bcom_section: "BOOKING.COM", bcom_title: "Pagkalkula ng presyo para sa BOOKING.COM", bcom_desc: "Hindi na kailangan ng SP/LP calculation sa B.com dahil ang Selling Price ay katumbas ng Local Price", bcom_instruction: "Ipasok ang halaga kung saan ang Selling Price ay katumbas ng Local Price.",
+        bcom_label: "SP=LP", bcom_help: "Gagamitin ang parehong halaga para sa SP at LP.", bcom_result_label: "SP=LP",
+        disc_existing_title: "Pagkalkula ng Umiiral na Discount %", disc_existing_instruction: "Ipasok ang data sa blue input fields. Pagkatapos, ang Discount Percentage na Ginamit ay lalabas sa ibaba.",
+        disc_existing_total_label: "<b>Kabuuang Selling Price w/o Tax</b>", disc_existing_total_help: "Ipasok ang Total Selling Price (Selling Price w/o Tax + Discount amount) mula sa Supplier Charges section",
+        disc_existing_amount_label: "<b>Discount amount</b>", disc_existing_amount_help: "Ipasok ang Discount amount mula sa Supplier Charges section", disc_existing_result_label: "<b>Kabuuang Discount % na ginamit</b>", disc_existing_formula: "Pormula: Discount amount ÷ Kabuuang Selling Price w/o Tax",
+        disc_from_sp_title: "Pagkalkula ng Discount Amount mula sa Selling Price", disc_from_sp_instruction: "Ipasok ang data sa blue input fields. Pagkatapos, ang Bagong Discount Price ay lalabas sa ibaba.",
+        disc_from_sp_old_total_label: "<b>Lumang Total Selling Price</b>", disc_from_sp_old_total_help: "Ipasok ang Total Selling Price (Selling Price with Tax - Discount amount) mula sa Supplier Charges section",
+        disc_from_sp_new_total_label: "<b>Bagong Total Selling Price</b>", disc_from_sp_new_total_help: "Ipasok ang Bagong Total Selling Price", disc_from_sp_old_discount_label: "<b>Lumang Discount amount</b>", disc_from_sp_old_discount_help: "Ipasok ang lumang discount amount mula sa Supplier Charges section",
+        disc_from_sp_result_label: "<b>Bagong Total Discount Price</b>", disc_from_sp_formula: "Pormula: Lumang Discount amount × Bagong Total Selling Price ÷ Lumang Total Selling Price",
+        disc_amount_title: "Pagkalkula ng Discount Amount", disc_amount_instruction: "Ipasok ang data sa blue input fields. Kapag naipasok na, ang Discount Amount ay lalabas sa ibaba.",
+        disc_amount_total_label: "<b>Kabuuang Selling Price w/o Tax</b>", disc_amount_total_help: "Ipasok ang Selling Price without Tax sa USD mula sa Supplier Charges section", disc_amount_pct_label: "<b>Discount %</b>", disc_amount_pct_help: "Ipasok ang Discount %",
+        disc_amount_result_label: "<b>Halagang ibabawas para sa discount</b>", disc_amount_formula: "Pormula: Kabuuang Selling Price w/o Tax × Discount %",
+        sp_local_price_ph: "hal. 37.62", sp_markup_ph: "hal. 3.8", sp_exchange_ph: "hal. 1", pax_usd_ph: "hal. 39.049560", pax_exchange_ph: "hal. 6.8128",
+        lp_selling_ph: "hal. 15.64", lp_commission_ph: "hal. 1.1", lp_exchange_ph: "hal. 3.9746", marriott_price_ph: "Ipasok ang halaga", marriott_exchange_ph: "Ipasok ang rate",
+        exb_local_ph: "hal. 300", exb_markup_ph: "hal. 5", exb_exchange_ph: "hal. 30.3748", bcom_ph: "Ipasok ang halaga", disc_existing_total_ph: "hal. 214.79",
+        disc_existing_amount_ph: "hal. 15.04", disc_from_sp_old_total_ph: "hal. 1939.83", disc_from_sp_new_total_ph: "hal. 1920.07", disc_from_sp_old_discount_ph: "hal. 120",
+        disc_amount_total_ph: "hal. 1372.26", disc_amount_pct_ph: "hal. 0.1"
+      },
+      th: {
+        language: "ภาษา", dark_mode: "โหมดมืด", clear_all: "ล้างทั้งหมด", brand_title: "เครื่องคำนวณ Charges", brand_subtitle: "เว็บเวอร์ชันที่อิงตาม Excel",
+        nav_selling_usd: "ราคาขาย (USD)", nav_pax_currency: "ราคาขาย (สกุลเงินลูกค้า)", nav_local_price: "คำนวณราคา Local", nav_special_rates: "ราคาขาย (Marriott / EXB / B.com)",
+        nav_discounts: "คำนวณส่วนลด", page_title: "Charges Tab Calculator v3", page_subtitle: "ตามคำแนะนำในไฟล์ Excel ต้นฉบับ",
+        sp_title: "คำนวณราคาขายในหน่วย USD", sp_desc: "คำนวณราคาขาย (เมื่อทราบราคา Local)", sp_instruction: "ไม่มีข้อมูลใน smart search, โรงแรมมีห้องว่าง<br>ขั้นตอนที่ 1: กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ ราคาขายรวมจะคำนวณที่ช่องด้านล่าง<br>ขั้นตอนที่ 2: ราคาขายจะถูกคัดลอกไปที่ Charges Tab โดยอัตโนมัติ",
+        sp_local_price_label: "<b>ราคา Local</b>", sp_local_price_help: "กรอกราคา Local ที่โรงแรมให้มาในสกุลเงินท้องถิ่น", sp_markup_label: "<b>Markup %</b>", sp_markup_help: "กรอก Markup จากส่วน Supplier Charges",
+        sp_exchange_label: "<b>อัตราแลกเปลี่ยน</b>", sp_exchange_help: "กรอกอัตราแลกเปลี่ยนจากส่วน Supplier Charges", sp_result_label: "<b>ราคาขาย (USD)</b>", sp_formula: "สูตร: (ราคา Local + (ราคา Local × Markup %)) ÷ อัตราแลกเปลี่ยน",
+        pax_title: "คำนวณราคาขายในสกุลเงินลูกค้า", pax_desc: "เมื่อเราคำนวณ SP เป็น USD แล้ว", pax_instruction: "กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ ราคาขายในสกุลเงินลูกค้าจะคำนวณด้านล่าง",
+        pax_usd_label: "<b>ราคาขาย (USD)</b>", pax_usd_help: "กรอกราคาขายเป็น USD จากส่วน Supplier Charges", pax_exchange_label: "<b>อัตราแลกเปลี่ยนจากการชำระเงินของลูกค้า</b>", pax_exchange_help: "กรอกอัตราแลกเปลี่ยนจากส่วน Customer Payments",
+        pax_result_label: "<b>ราคาขายในสกุลเงินลูกค้า</b>", pax_formula: "สูตร: ราคาขาย (USD) × อัตราแลกเปลี่ยนจากการชำระเงินของลูกค้า",
+        lp_title: "คำนวณราคา Local", lp_desc: "คำนวณราคา Local (เมื่อทราบราคาขาย)", lp_instruction: "ไม่มีข้อมูลใน Smart Search, โรงแรมมีห้องว่าง<br>ขั้นตอนที่ 1: กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ ราคา Local รวมจะคำนวณด้านล่าง<br>ขั้นตอนที่ 2: คัดลอกราคา Local ไปที่ Charges Tab",
+        lp_selling_label: "<b>ราคาขาย</b>", lp_selling_help: "กรอกราคาขายเป็น USD จากส่วน Supplier Charges", lp_commission_label: "<b>คอมมิชชั่น</b>", lp_commission_help: "กรอกคอมมิชชั่นจากส่วน Supplier Charges",
+        lp_exchange_label: "<b>อัตราแลกเปลี่ยน</b>", lp_exchange_help: "กรอกอัตราแลกเปลี่ยนจากส่วน Supplier Charges", lp_result_label: "<b>ราคา Local</b>", lp_formula: "สูตร: (ราคาขาย - (ราคาขาย × คอมมิชชั่น %)) × อัตราแลกเปลี่ยน",
+        marriott_section: "MARRIOTT", marriott_title: "การคำนวณราคาสำหรับคอมมิชชั่น MARRIOTT", marriott_instruction: "ไม่มีข้อมูลใน Smart Search, โรงแรมมีห้องว่าง<br>กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ SP และ LP จะคำนวณด้านล่าง",
+        marriott_price_label: "<b>ราคาที่โรงแรมให้มาในสกุลเงินท้องถิ่น</b>", marriott_price_help: "กรอกราคา Local ที่โรงแรมให้มาในสกุลเงินท้องถิ่น", marriott_exchange_label: "<b>อัตราแลกเปลี่ยน</b>", marriott_exchange_help: "กรอกอัตราแลกเปลี่ยนจากส่วน Supplier Charges",
+        marriott_sp_label: "<b>ราคาขาย</b>", marriott_lp_label: "<b>ราคา Local</b>", marriott_formula: "สูตร: ราคาขาย = ราคาโรงแรม ÷ อัตราแลกเปลี่ยน, ราคา Local = (ราคาขาย × 0.845) × อัตราแลกเปลี่ยน",
+        exb_section: "EXB- เตียงเสริม", exb_title: "ราคาขายสำหรับเตียงเสริม", exb_desc: "ลูกค้าจ่ายให้ Agoda", exb_instruction: "ไม่มีข้อมูลใน Smart Search, โรงแรมมีห้องว่าง<br>กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ SP รวมสำหรับเตียงเสริมจะคำนวณด้านล่าง",
+        exb_local_label: "<b>ราคา Local สำหรับ EXB ที่โรงแรมให้มา</b>", exb_local_help: "กรอกราคา Local สำหรับเตียงเสริมที่โรงแรมให้มา", exb_markup_label: "<b>Markup %</b>", exb_markup_help: "กรอก Markup ให้เป็น 5% เสมอ",
+        exb_exchange_label: "<b>อัตราแลกเปลี่ยน</b>", exb_exchange_help: "กรอกอัตราแลกเปลี่ยนจากส่วน Supplier Charges", exb_result_label: "<b>ราคาขายสำหรับเตียงเสริม</b>", exb_formula: "สูตร: ราคา Local สำหรับ EXB × (1 + Markup %) ÷ อัตราแลกเปลี่ยน",
+        bcom_section: "BOOKING.COM", bcom_title: "การคำนวณราคาสำหรับ BOOKING.COM", bcom_desc: "ไม่จำเป็นต้องคำนวณ SP/LP สำหรับ B.com เนื่องจากราคาขายเท่ากับราคา Local", bcom_instruction: "กรอกค่าที่ราคาขายเท่ากับราคา Local",
+        bcom_label: "SP=LP", bcom_help: "ค่าเดียวกันจะถูกใช้สำหรับทั้ง SP และ LP", bcom_result_label: "SP=LP",
+        disc_existing_title: "คำนวณส่วนลด % ที่มีอยู่", disc_existing_instruction: "กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ เปอร์เซ็นต์ส่วนลดที่ใช้จะถูกคำนวณด้านล่าง",
+        disc_existing_total_label: "<b>ราคาขายรวมไม่รวมภาษี</b>", disc_existing_total_help: "กรอกยอดรวมราคาขาย (ราคาขายไม่รวมภาษี + ยอดส่วนลด) จากส่วน Supplier Charges",
+        disc_existing_amount_label: "<b>ยอดส่วนลด</b>", disc_existing_amount_help: "กรอกยอดส่วนลดจากส่วน Supplier Charges", disc_existing_result_label: "<b>เปอร์เซ็นต์ส่วนลดรวมที่ใช้</b>", disc_existing_formula: "สูตร: ยอดส่วนลด ÷ ราคาขายรวมไม่รวมภาษี",
+        disc_from_sp_title: "คำนวณยอดส่วนลดจากราคาขาย", disc_from_sp_instruction: "กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ ราคาลดใหม่จะถูกคำนวณด้านล่าง",
+        disc_from_sp_old_total_label: "<b>ราคาขายรวมเดิม</b>", disc_from_sp_old_total_help: "กรอกยอดรวมราคาขาย (ราคาขายรวมภาษี - ยอดส่วนลด) จากส่วน Supplier Charges",
+        disc_from_sp_new_total_label: "<b>ราคาขายรวมใหม่</b>", disc_from_sp_new_total_help: "กรอกราคาขายรวมใหม่", disc_from_sp_old_discount_label: "<b>ยอดส่วนลดเดิม</b>", disc_from_sp_old_discount_help: "กรอกยอดส่วนลดเดิมจากส่วน Supplier Charges",
+        disc_from_sp_result_label: "<b>ราคาส่วนลดรวมใหม่</b>", disc_from_sp_formula: "สูตร: ยอดส่วนลดเดิม × ราคาขายรวมใหม่ ÷ ราคาขายรวมเดิม",
+        disc_amount_title: "คำนวณยอดส่วนลด", disc_amount_instruction: "กรอกข้อมูลในช่องสีฟ้า เมื่อกรอกเสร็จ ยอดส่วนลดจะถูกคำนวณด้านล่าง",
+        disc_amount_total_label: "<b>ราคาขายรวมไม่รวมภาษี</b>", disc_amount_total_help: "กรอกราคาขายไม่รวมภาษีเป็น USD จากส่วน Supplier Charges", disc_amount_pct_label: "<b>ส่วนลด %</b>", disc_amount_pct_help: "กรอกส่วนลด %",
+        disc_amount_result_label: "<b>ยอดที่จะหักสำหรับส่วนลด</b>", disc_amount_formula: "สูตร: ราคาขายรวมไม่รวมภาษี × ส่วนลด %",
+        sp_local_price_ph: "เช่น 37.62", sp_markup_ph: "เช่น 3.8", sp_exchange_ph: "เช่น 1", pax_usd_ph: "เช่น 39.049560", pax_exchange_ph: "เช่น 6.8128",
+        lp_selling_ph: "เช่น 15.64", lp_commission_ph: "เช่น 1.1", lp_exchange_ph: "เช่น 3.9746", marriott_price_ph: "กรอกจำนวนเงิน", marriott_exchange_ph: "กรอกอัตราแลกเปลี่ยน",
+        exb_local_ph: "เช่น 300", exb_markup_ph: "เช่น 5", exb_exchange_ph: "เช่น 30.3748", bcom_ph: "กรอกจำนวนเงิน", disc_existing_total_ph: "เช่น 214.79",
+        disc_existing_amount_ph: "เช่น 15.04", disc_from_sp_old_total_ph: "เช่น 1939.83", disc_from_sp_new_total_ph: "เช่น 1920.07", disc_from_sp_old_discount_ph: "เช่น 120",
+        disc_amount_total_ph: "เช่น 1372.26", disc_amount_pct_ph: "เช่น 0.1"
+      },
+      vi: {
+        language: "Ngôn ngữ", dark_mode: "Chế độ tối", clear_all: "Xóa tất cả", brand_title: "Bộ tính Charges", brand_subtitle: "Phiên bản web theo Excel",
+        nav_selling_usd: "Giá bán (USD)", nav_pax_currency: "Giá bán (Tiền tệ khách)", nav_local_price: "Tính Giá Local", nav_special_rates: "Giá bán (Marriott / EXB / B.com)",
+        nav_discounts: "Tính Giảm giá", page_title: "Charges Tab Calculator v3", page_subtitle: "theo hướng dẫn của file Excel gốc",
+        sp_title: "Tính Giá Bán bằng USD", sp_desc: "Tính Giá bán (khi đã biết Giá Local)", sp_instruction: "Không có dữ liệu trong tìm kiếm thông minh, khách sạn có phòng.<br>Bước 1: Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, tổng Giá bán sẽ được tính ở ô kết quả bên dưới.<br>Bước 2: Giá bán tự động sao chép sang Tab Charges.",
+        sp_local_price_label: "<b>Giá Local</b>", sp_local_price_help: "Nhập Giá Local do khách sạn cung cấp bằng tiền tệ địa phương", sp_markup_label: "<b>Markup %</b>", sp_markup_help: "Nhập Markup từ phần Supplier Charges",
+        sp_exchange_label: "<b>Tỷ giá</b>", sp_exchange_help: "Nhập Tỷ giá từ phần Supplier Charges", sp_result_label: "<b>Giá bán bằng USD</b>", sp_formula: "Công thức: (Giá Local + (Giá Local × Markup %)) ÷ Tỷ giá",
+        pax_title: "Tính Giá Bán bằng Tiền tệ Khách hàng", pax_desc: "Khi đã tính SP bằng USD", pax_instruction: "Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, tổng Giá bán bằng tiền tệ khách sẽ được tính bên dưới.",
+        pax_usd_label: "<b>Giá Bán bằng USD</b>", pax_usd_help: "Nhập Giá Bán bằng USD từ phần Supplier Charges", pax_exchange_label: "<b>Tỷ giá từ Customer Payments</b>", pax_exchange_help: "Nhập tỷ giá từ phần Customer Payments",
+        pax_result_label: "<b>Giá Bán bằng tiền tệ khách</b>", pax_formula: "Công thức: Giá Bán bằng USD × Tỷ giá từ Customer Payments",
+        lp_title: "Tính Giá Local", lp_desc: "Tính Giá Local (khi đã biết giá bán)", lp_instruction: "Không có dữ liệu trong Smart Search, khách sạn có phòng.<br>Bước 1: Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, tổng Giá Local sẽ được tính bên dưới.<br>Bước 2: Sao chép Giá Local sang Tab Charges.",
+        lp_selling_label: "<b>Giá bán</b>", lp_selling_help: "Nhập Giá Bán bằng USD từ phần Supplier Charges", lp_commission_label: "<b>Hoa hồng</b>", lp_commission_help: "Nhập Hoa hồng từ phần Supplier Charges",
+        lp_exchange_label: "<b>Tỷ giá</b>", lp_exchange_help: "Nhập Tỷ giá từ phần Supplier Charges", lp_result_label: "<b>Giá Local</b>", lp_formula: "Công thức: (Giá bán - (Giá bán × Hoa hồng %)) × Tỷ giá",
+        marriott_section: "MARRIOTT", marriott_title: "Tính giá cho hoa hồng người bán MARRIOTT", marriott_instruction: "Không có dữ liệu trong Smart Search, khách sạn có phòng.<br>Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, SP và LP sẽ được tính bên dưới.",
+        marriott_price_label: "<b>Giá do khách sạn cung cấp bằng tiền địa phương</b>", marriott_price_help: "Nhập Giá Local do khách sạn cung cấp bằng tiền tệ địa phương", marriott_exchange_label: "<b>Tỷ giá</b>", marriott_exchange_help: "Nhập Tỷ giá từ phần Supplier Charges",
+        marriott_sp_label: "<b>Giá bán</b>", marriott_lp_label: "<b>Giá Local</b>", marriott_formula: "Công thức: Giá bán = Giá Khách sạn ÷ Tỷ giá, Giá Local = (Giá bán × 0.845) × Tỷ giá",
+        exb_section: "EXB- Giường phụ", exb_title: "Giá Bán cho Giường Phụ", exb_desc: "Khách trả cho Agoda", exb_instruction: "Không có dữ liệu trong Smart Search, khách sạn có phòng.<br>Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, tổng SP cho Giường Phụ sẽ được tính bên dưới.",
+        exb_local_label: "<b>Giá Local cho EXB từ khách sạn</b>", exb_local_help: "Nhập Giá Local cho Giường Phụ từ khách sạn", exb_markup_label: "<b>Markup %</b>", exb_markup_help: "Nhập Markup, Luôn là 5%.",
+        exb_exchange_label: "<b>Tỷ giá</b>", exb_exchange_help: "Nhập Tỷ giá từ phần Supplier Charges", exb_result_label: "<b>Giá bán cho Giường Phụ</b>", exb_formula: "Công thức: Giá Local cho EXB × (1 + Markup %) ÷ Tỷ giá",
+        bcom_section: "BOOKING.COM", bcom_title: "Tính giá cho BOOKING.COM", bcom_desc: "Không cần tính SP/LP cho B.com vì Giá Bán bằng Giá Local", bcom_instruction: "Nhập một giá trị mà Giá Bán bằng Giá Local.",
+        bcom_label: "SP=LP", bcom_help: "Cùng một giá trị sẽ được dùng cho SP và LP.", bcom_result_label: "SP=LP",
+        disc_existing_title: "Tính % Giảm giá Hiện tại", disc_existing_instruction: "Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, Tổng % Giảm Giá Đã Dùng sẽ được tính bên dưới.",
+        disc_existing_total_label: "<b>Tổng Giá Bán chưa Thuế</b>", disc_existing_total_help: "Nhập Tổng số tiền Giá Bán (Giá Bán chưa Thuế + Số tiền giảm giá) từ phần Supplier Charges",
+        disc_existing_amount_label: "<b>Số tiền giảm giá</b>", disc_existing_amount_help: "Nhập Số tiền giảm giá từ phần Supplier Charges", disc_existing_result_label: "<b>Tổng % Giảm Giá đã dùng</b>", disc_existing_formula: "Công thức: Số tiền giảm giá ÷ Tổng Giá Bán chưa Thuế",
+        disc_from_sp_title: "Tính Số tiền Giảm giá từ Giá Bán", disc_from_sp_instruction: "Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, Tổng Giá Giảm Mới sẽ được tính bên dưới.",
+        disc_from_sp_old_total_label: "<b>Tổng Giá Bán Cũ</b>", disc_from_sp_old_total_help: "Nhập Tổng số tiền Giá Bán (Giá Bán có Thuế - Số tiền giảm giá) từ phần Supplier Charges",
+        disc_from_sp_new_total_label: "<b>Tổng Giá Bán Mới</b>", disc_from_sp_new_total_help: "Nhập Tổng Giá Bán Mới", disc_from_sp_old_discount_label: "<b>Số tiền giảm giá cũ</b>", disc_from_sp_old_discount_help: "Nhập số tiền giảm giá cũ từ phần Supplier Charges",
+        disc_from_sp_result_label: "<b>Tổng Giá Giảm Mới</b>", disc_from_sp_formula: "Công thức: Số tiền giảm giá cũ × Tổng Giá Bán Mới ÷ Tổng Giá Bán Cũ",
+        disc_amount_title: "Tính Số tiền Giảm giá", disc_amount_instruction: "Nhập dữ liệu vào các ô màu xanh. Sau khi nhập, Số tiền Giảm Giá sẽ được tính bên dưới.",
+        disc_amount_total_label: "<b>Tổng Giá Bán chưa Thuế</b>", disc_amount_total_help: "Nhập Giá Bán chưa Thuế bằng USD từ phần Supplier Charges", disc_amount_pct_label: "<b>Giảm giá %</b>", disc_amount_pct_help: "Nhập % Giảm giá",
+        disc_amount_result_label: "<b>Số tiền được khấu trừ để giảm giá</b>", disc_amount_formula: "Công thức: Tổng Giá Bán chưa Thuế × Giảm giá %",
+        sp_local_price_ph: "vd: 37.62", sp_markup_ph: "vd: 3.8", sp_exchange_ph: "vd: 1", pax_usd_ph: "vd: 39.049560", pax_exchange_ph: "vd: 6.8128",
+        lp_selling_ph: "vd: 15.64", lp_commission_ph: "vd: 1.1", lp_exchange_ph: "vd: 3.9746", marriott_price_ph: "Nhập số tiền", marriott_exchange_ph: "Nhập tỷ giá",
+        exb_local_ph: "vd: 300", exb_markup_ph: "vd: 5", exb_exchange_ph: "vd: 30.3748", bcom_ph: "Nhập số tiền", disc_existing_total_ph: "vd: 214.79",
+        disc_existing_amount_ph: "vd: 15.04", disc_from_sp_old_total_ph: "vd: 1939.83", disc_from_sp_new_total_ph: "vd: 1920.07", disc_from_sp_old_discount_ph: "vd: 120",
+        disc_amount_total_ph: "vd: 1372.26", disc_amount_pct_ph: "vd: 0.1"
+      }
+    };
+
+    function setLanguage(lang) {
+      const map = translations[lang] || translations.en;
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (map[key]) el.innerHTML = map[key];
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        if (map[key]) el.setAttribute("placeholder", map[key]);
+      });
+      document.documentElement.lang = lang === "zh" ? "zh" : lang;
+      localStorage.setItem("lang", lang);
+      autoSaveState();
+    }
+
+    languageSelect.addEventListener("change", (e) => setLanguage(e.target.value));
+
+    function getState() {
+      const state = {
+        inputs: {},
+        theme: localStorage.getItem("theme") || "dark",
+        lang: localStorage.getItem("lang") || "en"
+      };
+      document.querySelectorAll("input[type='number']").forEach(i => state.inputs[i.id] = i.value);
+      return state;
+    }
+
+    function autoSaveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(getState())); }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const state = JSON.parse(raw);
+        if (state.inputs) {
+          Object.entries(state.inputs).forEach(([id, value]) => {
+            const el = q(id);
+            if (el) el.value = value;
+          });
+        }
+      } catch (e) { console.warn("Failed to load state", e); }
+    }
+
+    function restoreUIState() {
+      const savedTheme = localStorage.getItem("theme") || "dark";
+      const savedLang = localStorage.getItem("lang") || "en";
+      setTheme(savedTheme);
+      languageSelect.value = savedLang;
+      setLanguage(savedLang);
+    }
+
+    window.addEventListener("resize", () => {
+      if (!isMobile()) closeMobileSidebar();
+    });
+
+    loadState();
+    restoreUIState();
+    calculateAll();
+
+    document.querySelectorAll("input[type='number']").forEach(input => {
+      input.addEventListener("input", autoSaveState);
+      input.addEventListener("change", autoSaveState);
+    });
+  </script>
+</body>
+</html>
