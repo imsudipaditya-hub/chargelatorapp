@@ -655,8 +655,9 @@
       </section>
     </main>
   </div>
-  
-// Register PWA Service Worker gracefully on window launch
+
+  <script>
+    // Register PWA Service Worker gracefully on window launch
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js")
@@ -664,8 +665,6 @@ if ("serviceWorker" in navigator) {
       .catch((err) => console.warn("Service worker registration dropped:", err));
   });
 }
-
-  <script>
     const q = (id) => document.getElementById(id);
     const STORAGE_KEY = "chargesCalcV3State";
 
