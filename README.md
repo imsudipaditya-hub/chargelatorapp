@@ -2,9 +2,9 @@
 
 Chargelator v3.0 is a hyper-optimized, professional-grade operations utility tool engineered to calculate room rates, supplier markups, local prices, and partner discounts in real-time. 
 
-This version transitions the original corporate Excel calculation logic into a highly resilient, lightning-fast vanilla web application deployed as a **Progressive Web App (PWA)** via GitHub Pages.
+This version transitions the original corporate Excel file called "Charges Tab Calculator v2" and its calculation logic into a highly resilient, lightning-fast vanilla web application deployed as a **Progressive Web App (PWA)** via GitHub Pages.
 
-Check on CEG Confluence: Original Excel Filename- Charges Tab Calculator v2
+Check on CEG Confluence the original Excel filename- Charges Tab Calculator v2
 
 ---
 
